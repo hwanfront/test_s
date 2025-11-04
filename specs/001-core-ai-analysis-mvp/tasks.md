@@ -32,19 +32,19 @@ Feature-Sliced Design (FSD) structure as defined in plan.md:
 
 **Purpose**: Initialize Next.js project with FSD architecture and core dependencies
 
-- [ ] T001 Create Feature-Sliced Design (FSD) directory structure per plan.md
-- [ ] T002 Initialize Next.js 14+ project with TypeScript 5.x and pnpm package manager
-- [ ] T003 [P] Install and configure core dependencies (React 18+, Tailwind CSS 3.x, shadcn/ui)
-- [ ] T004 [P] Install AI and database dependencies (Gemini API, Supabase client)
-- [ ] T005 [P] Install authentication dependencies (NextAuth.js, OAuth2 providers)
-- [ ] T006 [P] Install testing framework (Jest, React Testing Library, testing utilities)
-- [ ] T007 [P] Configure TypeScript with strict mode and path aliases for FSD layers
-- [ ] T008 [P] Configure Tailwind CSS with shadcn/ui integration
-- [ ] T009 [P] Setup Jest configuration with React Testing Library and FSD path mapping
-- [ ] T010 [P] Configure ESLint and Prettier for code quality and formatting
-- [ ] T011 [P] Setup environment configuration files (.env.local template, types)
-- [ ] T012 [P] Create root layout with providers in src/app/layout.tsx
-- [ ] T013 [P] Initialize landing page in src/app/page.tsx
+- [x] T001 Create Feature-Sliced Design (FSD) directory structure per plan.md
+- [x] T002 Initialize Next.js 14+ project with TypeScript 5.x and pnpm package manager
+- [x] T003 [P] Install and configure core dependencies (React 18+, Tailwind CSS 3.x, shadcn/ui)
+- [x] T004 [P] Install AI and database dependencies (Gemini API, Supabase client)
+- [x] T005 [P] Install authentication dependencies (NextAuth.js, OAuth2 providers)
+- [x] T006 [P] Install testing framework (Jest, React Testing Library, testing utilities)
+- [x] T007 [P] Configure TypeScript with strict mode and path aliases for FSD layers
+- [x] T008 [P] Configure Tailwind CSS with shadcn/ui integration
+- [x] T009 [P] Setup Jest configuration with React Testing Library and FSD path mapping
+- [x] T010 [P] Configure ESLint and Prettier for code quality and formatting
+- [x] T011 [P] Setup environment configuration files (.env.local template, types)
+- [x] T012 [P] Create root layout with providers in src/app/layout.tsx
+- [x] T013 [P] Initialize landing page in src/app/page.tsx
 
 ---
 
