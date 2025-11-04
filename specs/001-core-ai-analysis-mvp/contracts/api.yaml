@@ -1,0 +1,913 @@
+openapi: 3.0.3
+info:
+  title: Terms Watcher API
+  description: API for AI-powered terms and conditions analysis
+  version: 1.0.0
+  contact:
+    name: Terms Watcher Team
+    email: support@termswatcher.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://termswatcher.vercel.app/api
+    description: Production server
+
+paths:
+  /auth/session:
+    get:
+      summary: Get current user session
+      description: Retrieve the current authenticated user's session information
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Session information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signin:
+    post:
+      summary: Initiate OAuth2 sign-in
+      description: Start OAuth2 authentication flow with specified provider
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  enum: [google, naver]
+                  description: OAuth2 provider
+              required:
+                - provider
+      responses:
+        '200':
+          description: Authentication redirect URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: OAuth2 provider redirect URL
+        '400':
+          description: Invalid provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signout:
+    post:
+      summary: Sign out user
+      description: Terminate user session and clear authentication
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Successfully signed out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /quota:
+    get:
+      summary: Get user quota information
+      description: Retrieve current daily quota usage and limits
+      tags:
+        - Quota Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Quota information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analysis:
+    post:
+      summary: Submit terms for analysis
+      description: Submit terms and conditions text for AI risk analysis
+      tags:
+        - Analysis
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalysisRequest'
+      responses:
+        '201':
+          description: Analysis session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisSessionResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Quota exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaExceededResponse'
+
+  /analysis/{sessionId}:
+    get:
+      summary: Get analysis results
+      description: Retrieve analysis results for a specific session
+      tags:
+        - Analysis
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Analysis session ID
+      responses:
+        '200':
+          description: Analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResultResponse'
+        '404':
+          description: Session not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied to this session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analysis/{sessionId}/status:
+    get:
+      summary: Get analysis status
+      description: Check the processing status of an analysis session
+      tags:
+        - Analysis
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Analysis session ID
+      responses:
+        '200':
+          description: Analysis status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisStatusResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analysis/history:
+    get:
+      summary: Get user analysis history
+      description: Retrieve paginated list of user's past analyses
+      tags:
+        - Analysis
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+          description: Items per page
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [processing, completed, failed, expired]
+          description: Filter by analysis status
+      responses:
+        '200':
+          description: Analysis history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisHistoryResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /patterns:
+    get:
+      summary: Get available clause patterns
+      description: Retrieve list of clause patterns used for analysis
+      tags:
+        - Patterns
+      parameters:
+        - name: industry
+          in: query
+          schema:
+            type: string
+            default: mobile-gaming
+          description: Filter patterns by industry
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter patterns by category
+      responses:
+        '200':
+          description: Clause patterns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatternsResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SessionResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        expires:
+          type: string
+          format: date-time
+          description: Session expiration time
+      required:
+        - user
+        - expires
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User unique identifier
+        email:
+          type: string
+          format: email
+          description: User email address
+        name:
+          type: string
+          description: User display name
+        provider:
+          type: string
+          enum: [google, naver]
+          description: OAuth2 provider
+        avatarUrl:
+          type: string
+          format: uri
+          description: User profile picture URL
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        lastLoginAt:
+          type: string
+          format: date-time
+          description: Last login timestamp
+      required:
+        - id
+        - email
+        - name
+        - provider
+        - createdAt
+        - lastLoginAt
+
+    QuotaResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: Current date (YYYY-MM-DD)
+        freeAnalysesUsed:
+          type: integer
+          minimum: 0
+          description: Number of free analyses used today
+        freeAnalysesLimit:
+          type: integer
+          minimum: 1
+          description: Daily free analysis limit
+        paidAnalysesUsed:
+          type: integer
+          minimum: 0
+          description: Number of paid analyses used today
+        remainingFree:
+          type: integer
+          minimum: 0
+          description: Remaining free analyses today
+        nextResetAt:
+          type: string
+          format: date-time
+          description: Next quota reset time
+      required:
+        - date
+        - freeAnalysesUsed
+        - freeAnalysesLimit
+        - paidAnalysesUsed
+        - remainingFree
+        - nextResetAt
+
+    AnalysisRequest:
+      type: object
+      properties:
+        content:
+          type: string
+          minLength: 100
+          maxLength: 100000
+          description: Terms and conditions text to analyze
+        skipCache:
+          type: boolean
+          default: false
+          description: Force new analysis even if cached result exists
+      required:
+        - content
+
+    AnalysisSessionResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: Analysis session identifier
+        status:
+          type: string
+          enum: [processing]
+          description: Initial status is always processing
+        estimatedTimeMs:
+          type: integer
+          minimum: 0
+          description: Estimated processing time in milliseconds
+        contentLength:
+          type: integer
+          minimum: 0
+          description: Length of submitted content
+        createdAt:
+          type: string
+          format: date-time
+          description: Session creation time
+        expiresAt:
+          type: string
+          format: date-time
+          description: Results expiration time
+      required:
+        - sessionId
+        - status
+        - estimatedTimeMs
+        - contentLength
+        - createdAt
+        - expiresAt
+
+    AnalysisStatusResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          description: Analysis session identifier
+        status:
+          type: string
+          enum: [processing, completed, failed, expired]
+          description: Current analysis status
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Analysis progress percentage
+        estimatedTimeRemainingMs:
+          type: integer
+          minimum: 0
+          description: Estimated time remaining in milliseconds
+        errorMessage:
+          type: string
+          description: Error details if status is failed
+      required:
+        - sessionId
+        - status
+        - progress
+
+    AnalysisResultResponse:
+      type: object
+      properties:
+        session:
+          $ref: '#/components/schemas/AnalysisSession'
+        riskAssessments:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskAssessment'
+          description: List of identified risks ordered by position
+        summary:
+          $ref: '#/components/schemas/AnalysisSummary'
+      required:
+        - session
+        - riskAssessments
+        - summary
+
+    AnalysisSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Session identifier
+        contentLength:
+          type: integer
+          minimum: 0
+          description: Original content length
+        status:
+          type: string
+          enum: [completed, failed, expired]
+          description: Final session status
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Overall risk score
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Overall risk level
+        confidenceScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Analysis confidence score
+        processingTimeMs:
+          type: integer
+          minimum: 0
+          description: Total processing time
+        createdAt:
+          type: string
+          format: date-time
+          description: Session creation time
+        completedAt:
+          type: string
+          format: date-time
+          description: Analysis completion time
+        expiresAt:
+          type: string
+          format: date-time
+          description: Results expiration time
+      required:
+        - id
+        - contentLength
+        - status
+        - createdAt
+        - expiresAt
+
+    RiskAssessment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Assessment identifier
+        clauseCategory:
+          type: string
+          description: Risk category name
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Risk severity level
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Numerical risk score
+        confidenceScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: AI confidence in this assessment
+        summary:
+          type: string
+          minLength: 10
+          maxLength: 200
+          description: Brief risk description
+        rationale:
+          type: string
+          minLength: 50
+          maxLength: 1000
+          description: Detailed explanation of the risk
+        suggestedAction:
+          type: string
+          description: Recommended user action
+        startPosition:
+          type: integer
+          minimum: 0
+          description: Start character position for highlighting
+        endPosition:
+          type: integer
+          minimum: 0
+          description: End character position for highlighting
+        createdAt:
+          type: string
+          format: date-time
+          description: Assessment creation time
+      required:
+        - id
+        - clauseCategory
+        - riskLevel
+        - riskScore
+        - confidenceScore
+        - summary
+        - rationale
+        - startPosition
+        - endPosition
+        - createdAt
+
+    AnalysisSummary:
+      type: object
+      properties:
+        totalRisks:
+          type: integer
+          minimum: 0
+          description: Total number of risks found
+        riskBreakdown:
+          type: object
+          properties:
+            critical:
+              type: integer
+              minimum: 0
+            high:
+              type: integer
+              minimum: 0
+            medium:
+              type: integer
+              minimum: 0
+            low:
+              type: integer
+              minimum: 0
+          required:
+            - critical
+            - high
+            - medium
+            - low
+          description: Count of risks by severity level
+        topCategories:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+                description: Risk category name
+              count:
+                type: integer
+                minimum: 1
+                description: Number of risks in this category
+              averageRisk:
+                type: number
+                minimum: 0
+                maximum: 100
+                description: Average risk score for this category
+            required:
+              - category
+              - count
+              - averageRisk
+          description: Most common risk categories
+        analysisLimitations:
+          type: array
+          items:
+            type: string
+          description: Known limitations of this analysis
+        recommendedActions:
+          type: array
+          items:
+            type: string
+          description: General recommendations based on findings
+      required:
+        - totalRisks
+        - riskBreakdown
+        - topCategories
+        - analysisLimitations
+        - recommendedActions
+
+    AnalysisHistoryResponse:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalysisSession'
+          description: List of analysis sessions
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              minimum: 1
+              description: Current page number
+            limit:
+              type: integer
+              minimum: 1
+              description: Items per page
+            total:
+              type: integer
+              minimum: 0
+              description: Total number of sessions
+            totalPages:
+              type: integer
+              minimum: 0
+              description: Total number of pages
+            hasNext:
+              type: boolean
+              description: Whether there are more pages
+            hasPrev:
+              type: boolean
+              description: Whether there are previous pages
+          required:
+            - page
+            - limit
+            - total
+            - totalPages
+            - hasNext
+            - hasPrev
+      required:
+        - sessions
+        - pagination
+
+    PatternsResponse:
+      type: object
+      properties:
+        patterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClausePattern'
+          description: Available clause patterns
+        metadata:
+          type: object
+          properties:
+            industry:
+              type: string
+              description: Filtered industry
+            totalPatterns:
+              type: integer
+              minimum: 0
+              description: Total number of patterns
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Last pattern update time
+          required:
+            - industry
+            - totalPatterns
+            - lastUpdated
+      required:
+        - patterns
+        - metadata
+
+    ClausePattern:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Pattern identifier
+        category:
+          type: string
+          description: Pattern category
+        name:
+          type: string
+          description: Human-readable pattern name
+        description:
+          type: string
+          description: Pattern description
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Default risk level for this pattern
+        industry:
+          type: string
+          description: Target industry
+        version:
+          type: integer
+          minimum: 1
+          description: Pattern version
+        isActive:
+          type: boolean
+          description: Whether pattern is currently active
+      required:
+        - id
+        - category
+        - name
+        - description
+        - riskLevel
+        - industry
+        - version
+        - isActive
+
+    QuotaExceededResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "quota_exceeded"
+          description: Error code
+        message:
+          type: string
+          example: "Daily free analysis limit exceeded"
+          description: Human-readable error message
+        quota:
+          $ref: '#/components/schemas/QuotaResponse'
+        paymentRequired:
+          type: object
+          properties:
+            amount:
+              type: integer
+              description: Cost for additional analysis (KRW)
+            currency:
+              type: string
+              example: "KRW"
+              description: Currency code
+          required:
+            - amount
+            - currency
+      required:
+        - error
+        - message
+        - quota
+        - paymentRequired
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: Error occurrence time
+      required:
+        - error
+        - message
+        - timestamp
+
+  examples:
+    AnalysisRequestExample:
+      summary: Mobile game terms analysis
+      value:
+        content: |
+          TERMS OF SERVICE
+          
+          1. ACCOUNT TERMINATION
+          We reserve the right to terminate your account at any time without notice for any reason.
+          
+          2. VIRTUAL CURRENCY
+          All virtual currency purchased has no real-world value and may be forfeited at our discretion.
+          
+          3. USER DATA
+          By using our service, you grant us unlimited rights to collect, use, and share your personal information.
+        skipCache: false
+
+    AnalysisResultExample:
+      summary: Example analysis result
+      value:
+        session:
+          id: "550e8400-e29b-41d4-a716-446655440000"
+          contentLength: 1245
+          status: "completed"
+          riskScore: 85
+          riskLevel: "high"
+          confidenceScore: 92
+          processingTimeMs: 15420
+          createdAt: "2025-11-05T10:30:00Z"
+          completedAt: "2025-11-05T10:30:15Z"
+          expiresAt: "2025-11-12T10:30:00Z"
+        riskAssessments:
+          - id: "550e8400-e29b-41d4-a716-446655440001"
+            clauseCategory: "account-termination"
+            riskLevel: "critical"
+            riskScore: 95
+            confidenceScore: 98
+            summary: "Arbitrary account termination without notice"
+            rationale: "This clause allows the service provider to terminate user accounts at any time without providing notice or justification, which is highly unfair to users who may lose access to purchased content."
+            suggestedAction: "Look for services with clear termination policies that provide notice and appeal processes."
+            startPosition: 45
+            endPosition: 147
+            createdAt: "2025-11-05T10:30:15Z"
+        summary:
+          totalRisks: 3
+          riskBreakdown:
+            critical: 1
+            high: 1
+            medium: 1
+            low: 0
+          topCategories:
+            - category: "account-termination"
+              count: 1
+              averageRisk: 95
+            - category: "virtual-currency"
+              count: 1
+              averageRisk: 80
+          analysisLimitations:
+            - "Analysis focused on mobile gaming industry patterns"
+            - "Legal interpretation may vary by jurisdiction"
+            - "AI confidence levels indicate uncertainty in assessment"
+          recommendedActions:
+            - "Consider alternative services with fairer terms"
+            - "Review virtual currency policies carefully before purchasing"
+            - "Understand data collection practices and your rights"
+
+tags:
+  - name: Authentication
+    description: User authentication via OAuth2
+  - name: Quota Management
+    description: Daily usage quota tracking
+  - name: Analysis
+    description: Terms and conditions risk analysis
+  - name: Patterns
+    description: Clause pattern management
