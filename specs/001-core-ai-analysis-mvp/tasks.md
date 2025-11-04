@@ -56,40 +56,40 @@ Feature-Sliced Design (FSD) structure as defined in plan.md:
 
 ### Database and Schema Setup
 
-- [ ] T014 Setup Supabase project and configure connection in src/shared/config/supabase.ts
-- [ ] T015 Create database schema migration scripts based on data-model.md
-- [ ] T016 [P] Implement User entity model in src/entities/user/model/types.ts
-- [ ] T017 [P] Implement AnalysisSession entity model in src/entities/analysis/model/types.ts
-- [ ] T018 [P] Implement DailyQuota entity model in src/entities/quota/model/types.ts
-- [ ] T019 [P] Implement RiskAssessment entity model in src/entities/analysis/model/types.ts
-- [ ] T020 [P] Implement ClausePattern entity model in src/entities/analysis/model/types.ts
+- [x] T014 Setup Supabase project and configure connection in src/shared/config/supabase.ts
+- [x] T015 Create database schema migration scripts based on data-model.md
+- [x] T016 [P] Implement User entity model in src/entities/user/model/types.ts
+- [x] T017 [P] Implement AnalysisSession entity model in src/entities/analysis/model/types.ts
+- [x] T018 [P] Implement DailyQuota entity model in src/entities/quota/model/types.ts
+- [x] T019 [P] Implement RiskAssessment entity model in src/entities/analysis/model/types.ts
+- [x] T020 [P] Implement ClausePattern entity model in src/entities/analysis/model/types.ts
 
 ### Authentication Framework
 
-- [ ] T021 Configure NextAuth.js with Google and Naver providers in src/app/api/auth/[...nextauth]/route.ts
-- [ ] T022 [P] Create authentication middleware in src/shared/lib/auth/middleware.ts
-- [ ] T023 [P] Implement session management utilities in src/shared/lib/auth/session.ts
-- [ ] T024 [P] Create authentication context provider in src/shared/lib/auth/provider.tsx
+- [x] T021 Configure NextAuth.js with Google and Naver providers in src/app/api/auth/[...nextauth]/route.ts
+- [x] T022 [P] Create authentication middleware in src/shared/lib/auth/middleware.ts
+- [x] T023 [P] Implement session management utilities in src/shared/lib/auth/session.ts
+- [x] T024 [P] Create authentication context provider in src/shared/lib/auth/provider.tsx
 
 ### API Infrastructure
 
-- [ ] T025 [P] Setup API error handling middleware in src/shared/lib/api/error-handler.ts
-- [ ] T026 [P] Create API response utilities in src/shared/lib/api/response.ts
-- [ ] T027 [P] Implement rate limiting middleware in src/shared/lib/api/rate-limit.ts
-- [ ] T028 [P] Setup API validation utilities with Zod in src/shared/lib/api/validation.ts
+- [x] T025 [P] Setup API error handling middleware in src/shared/lib/api/error-handler.ts
+- [x] T026 [P] Create API response utilities in src/shared/lib/api/response.ts
+- [x] T027 [P] Implement rate limiting middleware in src/shared/lib/api/rate-limit.ts
+- [x] T028 [P] Setup API validation utilities with Zod in src/shared/lib/api/validation.ts
 
 ### External Service Configuration
 
-- [ ] T029 Configure Google Gemini API client in src/shared/config/gemini.ts
-- [ ] T030 [P] Setup error monitoring with Sentry in src/shared/config/sentry.ts
-- [ ] T031 [P] Create environment variables validation in src/shared/config/env.ts
+- [x] T029 Configure Google Gemini API client in src/shared/config/gemini.ts
+- [x] T030 [P] Setup error monitoring with Sentry in src/shared/config/sentry.ts
+- [x] T031 [P] Create environment variables validation in src/shared/config/env.ts
 
 ### Testing Infrastructure
 
-- [ ] T032 [P] Create mock implementations for external APIs in tests/__mocks__/
-- [ ] T033 [P] Setup test database utilities in tests/setup/database.ts
-- [ ] T034 [P] Create testing helpers for authentication in tests/setup/auth.ts
-- [ ] T035 [P] Setup test environment configuration in tests/setup/env.ts
+- [x] T032 [P] Create mock implementations for external APIs in tests/__mocks__/
+- [x] T033 [P] Setup test database utilities in tests/setup/database.ts
+- [x] T034 [P] Create testing helpers for authentication in tests/setup/auth.ts
+- [x] T035 [P] Setup test environment configuration in tests/setup/env.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

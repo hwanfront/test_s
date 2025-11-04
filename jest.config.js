@@ -8,7 +8,7 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     // Handle module aliases (this will be automatically configured for you based on your tsconfig.json paths)
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/app/(.*)$': '<rootDir>/src/app/$1',
@@ -29,12 +29,13 @@ const customJestConfig = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
   ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs'],
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+    '^.+\\.mjs$': 'babel-jest',
   },
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(jose|@supabase|@next|@babel|next-auth|uuid|@next-auth|zod)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
 }

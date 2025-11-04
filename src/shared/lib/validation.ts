@@ -48,6 +48,25 @@ export const validateRequest = async <T>(
   }
 }
 
+// Synchronous validation helper
+export const validateInput = <T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+): T => {
+  try {
+    return schema.parse(data)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const fieldErrors = (error as any).errors.map((err: any) => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }))
+      throw new Error(`Validation failed: ${fieldErrors.map((e: any) => `${e.field}: ${e.message}`).join(', ')}`)
+    }
+    throw error
+  }
+}
+
 // Export types
 export type CreateAnalysisSessionData = z.infer<typeof CreateAnalysisSessionSchema>
 export type UpdateAnalysisSessionData = z.infer<typeof UpdateAnalysisSessionSchema>

@@ -1,4 +1,54 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+
+/**
+ * Custom API Error class for consistent error handling
+ */
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+    public code?: string
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+/**
+ * Error handler wrapper for API routes
+ */
+export function withErrorHandler<T extends any[]>(
+  handler: (...args: T) => Promise<NextResponse>
+) {
+  return async (...args: T): Promise<NextResponse> => {
+    try {
+      return await handler(...args)
+    } catch (error) {
+      console.error('API Error:', error)
+
+      if (error instanceof ApiError) {
+        return NextResponse.json(
+          createErrorResponse(error.message, error.code),
+          { status: error.status }
+        )
+      }
+
+      // Handle specific error types
+      if (error instanceof SyntaxError) {
+        return NextResponse.json(
+          createErrorResponse('Invalid JSON in request body'),
+          { status: 400 }
+        )
+      }
+
+      // Generic server error
+      return NextResponse.json(
+        createErrorResponse('Internal server error'),
+        { status: 500 }
+      )
+    }
+  }
+}
 
 // Extract JSON body from request
 export const getRequestBody = async <T = any>(request: NextRequest): Promise<T> => {
