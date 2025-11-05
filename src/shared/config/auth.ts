@@ -1,12 +1,28 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { createServerClient } from '@/shared/config/database'
+import { validateOAuthConfig } from '@/shared/config/env-validation'
+
+// Validate OAuth configuration at startup
+const oauthConfig = validateOAuthConfig()
+
+if (!oauthConfig.google) {
+  console.warn('⚠️  Google OAuth not properly configured. Authentication may fail.')
+  console.warn('   Please check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.')
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      },
       profile(profile) {
         return {
           id: profile.sub,
@@ -49,36 +65,66 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async signIn({ user, account, profile }) {
-      if (!account || !profile) return false
+      if (!account || !profile || !user.email) {
+        console.error('Missing required OAuth data:', { account: !!account, profile: !!profile, email: !!user.email })
+        return false
+      }
       
       try {
         const supabase = createServerClient()
         
         // Check if user exists in our database
-        const { data: existingUser } = await supabase
+        const { data: existingUser, error: fetchError } = await supabase
           .from('users')
           .select('id')
-          .eq('email', user.email!)
+          .eq('email', user.email)
           .eq('provider', account.provider)
           .single()
         
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          // PGRST116 is "not found" error, which is expected for new users
+          console.error('Error fetching user:', fetchError)
+          return false
+        }
+        
         if (!existingUser) {
           // Create new user in our database
-          const { error } = await supabase
+          const { error: insertError } = await supabase
             .from('users')
             .insert({
-              id: user.id,
-              email: user.email!,
-              name: user.name,
+              // id: user.id,
+              email: user.email,
+              name: user.name || 'Anonymous User',
               avatar_url: user.image,
               provider: account.provider as 'google' | 'naver',
               provider_id: account.providerAccountId,
+              is_active: true,
+              last_login_at: new Date().toISOString()
+              // Note: created_at and updated_at are handled by database defaults and triggers
             })
           
-          if (error) {
-            console.error('Error creating user:', error)
+          if (insertError) {
+            console.error('Error creating user:', insertError)
             return false
           }
+          
+          console.log('New user created successfully:', user.email)
+        } else {
+          // Update last login time for existing user
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              last_login_at: new Date().toISOString()
+              // updated_at will be automatically set by database trigger
+            })
+            .eq('id', existingUser.id)
+          
+          if (updateError) {
+            console.warn('Could not update last login time:', updateError)
+            // Don't fail authentication for this non-critical update
+          }
+          
+          console.log('Existing user signed in:', user.email)
         }
         
         return true
