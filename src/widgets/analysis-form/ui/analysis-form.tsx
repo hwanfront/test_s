@@ -1,13 +1,15 @@
 /**
  * Analysis Form Widget Component
- * T064 [US1] Create analysis form widget
+ * T064 [US1] Create analysis form widget + T098 quota display integration
  * 
  * Comprehensive form component for inputting terms and conditions text for analysis
+ * Includes quota awareness and usage tracking
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/shared/lib'
 import { useAnalysisFormStore, estimateAnalysisTime, getCharacterCountInfo } from '../model/store'
+import { QuotaDisplay, useQuotaStatus } from './quota-display'
 
 export interface AnalysisFormSubmission {
   content: string
@@ -45,6 +47,7 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
     lastSaved,
     setContent,
     setSkipCache,
+    setErrors,
     validateContent,
     cleanFormatting,
     reset,
@@ -54,6 +57,9 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
   const [localSkipCache, setLocalSkipCache] = useState(false)
   const [showFormatSuggestion, setShowFormatSuggestion] = useState(false)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
+  
+  // Quota awareness
+  const { canAnalyze, quotaStatus } = useQuotaStatus()
 
   // Load draft on mount
   useEffect(() => {
@@ -76,7 +82,7 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
   const estimatedTime = estimateAnalysisTime(content.length)
   const validation = validateContent() || { isValid: false, errors: {} }
 
-  const canSubmit = validation.isValid && !isSubmitting && !disabled
+  const canSubmit = validation.isValid && !isSubmitting && !disabled && canAnalyze
 
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value)
@@ -96,6 +102,15 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return
 
+    // Check quota before proceeding
+    if (!canAnalyze) {
+      setErrors({ 
+        ...errors, 
+        quota: 'Daily analysis quota exceeded. Please try again tomorrow.' 
+      })
+      return
+    }
+
     const validation = validateContent()
     if (!validation.isValid) return
 
@@ -109,7 +124,7 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
     } catch (error) {
       setSubmissionError(error instanceof Error ? error.message : 'Submission failed')
     }
-  }, [canSubmit, validateContent, onSubmit, content, showAdvancedOptions, localSkipCache, contentType])
+  }, [canSubmit, canAnalyze, errors, setErrors, validateContent, onSubmit, content, showAdvancedOptions, localSkipCache, contentType])
 
   const handleClear = useCallback(() => {
     reset()
@@ -337,6 +352,27 @@ We'll analyze the text for potentially problematic clauses and provide clear exp
             </label>
           </div>
         )}
+
+        {/* Quota Display */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <QuotaDisplay 
+            variant="detailed"
+            onQuotaExceeded={() => {
+              setErrors({ 
+                ...errors, 
+                quota: 'Daily analysis quota exceeded. Please try again tomorrow.' 
+              })
+            }}
+            onQuotaWarning={(remaining) => {
+              if (remaining <= 3) {
+                setErrors({ 
+                  ...errors, 
+                  quota: `Only ${remaining} analyses remaining for today.` 
+                })
+              }
+            }}
+          />
+        </div>
 
         {/* Form Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-200">

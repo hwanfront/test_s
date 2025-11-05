@@ -1,8 +1,9 @@
 /**
  * Analysis Interface Page
- * T068 [US1] Create analysis interface page
+ * T068 [US1] Create analysis interface page with T097 authentication guard
  * 
  * Main page where users input terms and conditions for analysis
+ * Protected by authentication guard
  */
 
 'use client'
@@ -10,21 +11,18 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { AuthGuard } from '@/shared/lib/middleware/auth-guard'
+import { AuthWidget } from '@/widgets/auth-widget'
 import { AnalysisForm } from '@/widgets/analysis-form'
 import type { AnalysisFormSubmission } from '@/widgets/analysis-form'
 
-export default function AnalysisPage() {
+function AnalysisPageContent() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { data: session } = useSession()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleAnalysisSubmit = async (data: AnalysisFormSubmission) => {
-    if (!session) {
-      router.push('/api/auth/signin')
-      return
-    }
-
     try {
       setIsSubmitting(true)
       setError(null)
@@ -62,24 +60,6 @@ export default function AnalysisPage() {
     router.push('/')
   }
 
-  // Show loading while checking authentication
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Redirect to signin if not authenticated
-  if (status === 'unauthenticated') {
-    router.push('/api/auth/signin')
-    return null
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -93,22 +73,7 @@ export default function AnalysisPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              {session?.user?.image && (
-                <img
-                  src={session.user.image}
-                  alt={session.user.name || 'User'}
-                  className="w-8 h-8 rounded-full"
-                />
-              )}
-              <span className="text-sm text-gray-700">
-                {session?.user?.name || session?.user?.email}
-              </span>
-              <button
-                onClick={() => router.push('/api/auth/signout')}
-                className="text-sm text-gray-600 hover:text-gray-800"
-              >
-                Sign out
-              </button>
+              <AuthWidget variant="compact" />
             </div>
           </div>
         </div>
@@ -204,5 +169,13 @@ export default function AnalysisPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function AnalysisPage() {
+  return (
+    <AuthGuard>
+      <AnalysisPageContent />
+    </AuthGuard>
   )
 }

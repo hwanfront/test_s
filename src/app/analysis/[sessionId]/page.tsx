@@ -1,8 +1,9 @@
 /**
  * Analysis Results Page
- * T069 [US1] Create analysis results page
+ * T069 [US1] Create analysis results page with T097 authentication guard
  * 
  * Page for displaying analysis results for a specific session
+ * Protected by authentication guard
  */
 
 'use client'
@@ -10,14 +11,16 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { AuthGuard } from '@/shared/lib/middleware/auth-guard'
+import { AuthWidget } from '@/widgets/auth-widget'
 import { ResultsDashboard } from '@/widgets/results-dashboard'
 import type { AnalysisResults } from '@/features/analysis-display/components/results-viewer'
 
-export default function AnalysisResultsPage() {
+function AnalysisResultsPageContent() {
   const router = useRouter()
   const params = useParams()
   const sessionId = params?.sessionId as string
-  const { data: session, status } = useSession()
+  const { data: session } = useSession()
   const [analysisResult, setAnalysisResult] = useState<AnalysisResults | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,12 +63,10 @@ export default function AnalysisResultsPage() {
     }
   }
 
-  // Load results on mount and when session changes
+  // Load results on mount
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchResults()
-    }
-  }, [sessionId, status])
+    fetchResults()
+  }, [sessionId])
 
   // Handle actions
   const handleNewAnalysis = () => {
@@ -114,24 +115,6 @@ export default function AnalysisResultsPage() {
     }
   }
 
-  // Show loading while checking authentication
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Redirect to signin if not authenticated
-  if (status === 'unauthenticated') {
-    router.push('/api/auth/signin')
-    return null
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -161,22 +144,7 @@ export default function AnalysisResultsPage() {
               >
                 New Analysis
               </button>
-              {session?.user?.image && (
-                <img
-                  src={session.user.image}
-                  alt={session.user.name || 'User'}
-                  className="w-8 h-8 rounded-full"
-                />
-              )}
-              <span className="text-sm text-gray-700">
-                {session?.user?.name || session?.user?.email}
-              </span>
-              <button
-                onClick={() => router.push('/api/auth/signout')}
-                className="text-sm text-gray-600 hover:text-gray-800"
-              >
-                Sign out
-              </button>
+              <AuthWidget variant="compact" />
             </div>
           </div>
         </div>
@@ -224,6 +192,14 @@ export default function AnalysisResultsPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function AnalysisResultsPage() {
+  return (
+    <AuthGuard>
+      <AnalysisResultsPageContent />
+    </AuthGuard>
   )
 }
 
