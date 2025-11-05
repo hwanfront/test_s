@@ -8,26 +8,43 @@ import { ResultParser } from '@/features/ai-analysis/lib/result-parser'
 jest.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
     getGenerativeModel: jest.fn().mockReturnValue({
-      generateContent: jest.fn().mockResolvedValue({
-        response: {
-          text: () => JSON.stringify({
-            overallRiskScore: 75,
-            riskLevel: 'high',
-            confidenceScore: 90,
-            riskAssessments: [
-              {
-                category: 'account-termination',
-                riskLevel: 'critical',
-                riskScore: 95,
-                confidenceScore: 92,
-                summary: 'Arbitrary account termination',
-                rationale: 'This clause allows termination without cause',
-                startPosition: 10,
-                endPosition: 50
-              }
-            ]
+      generateContent: jest.fn().mockImplementation((prompt: string) => {
+        // Check if the prompt contains content that should be considered "fair"
+        if (prompt.includes('perfectly fair and reasonable')) {
+          return Promise.resolve({
+            response: {
+              text: () => JSON.stringify({
+                overallRiskScore: 15,
+                riskLevel: 'low',
+                confidenceScore: 85,
+                riskAssessments: []
+              })
+            }
           })
         }
+        
+        // Default response for normal risky content
+        return Promise.resolve({
+          response: {
+            text: () => JSON.stringify({
+              overallRiskScore: 75,
+              riskLevel: 'high',
+              confidenceScore: 90,
+              riskAssessments: [
+                {
+                  category: 'account-termination',
+                  riskLevel: 'critical',
+                  riskScore: 95,
+                  confidenceScore: 92,
+                  summary: 'Arbitrary account termination',
+                  rationale: 'This clause allows termination without cause',
+                  startPosition: 10,
+                  endPosition: 50
+                }
+              ]
+            })
+          }
+        })
       })
     })
   }))

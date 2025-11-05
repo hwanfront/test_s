@@ -105,14 +105,14 @@ Feature-Sliced Design (FSD) structure as defined in plan.md:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T036 [P] [US1] Contract test for POST /api/analysis endpoint in tests/integration/analysis-api.test.ts
-- [ ] T037 [P] [US1] Contract test for GET /api/analysis/{sessionId} endpoint in tests/integration/analysis-api.test.ts
-- [ ] T038 [P] [US1] Unit test for text preprocessing module in tests/unit/features/text-preprocessing.test.ts
-- [ ] T039 [P] [US1] Unit test for AI analysis module in tests/unit/features/ai-analysis.test.ts
-- [ ] T040 [P] [US1] Unit test for analysis display components in tests/unit/features/analysis-display.test.ts
-- [ ] T041 [P] [US1] Integration test for complete analysis workflow in tests/integration/analysis-workflow.test.ts
-- [ ] T042 [P] [US1] Component test for analysis form widget in tests/unit/widgets/analysis-form.test.tsx
-- [ ] T043 [P] [US1] Component test for results dashboard widget in tests/unit/widgets/results-dashboard.test.tsx
+- [x] T036 [P] [US1] Contract test for POST /api/analysis endpoint in tests/integration/analysis-api.test.ts
+- [x] T037 [P] [US1] Contract test for GET /api/analysis/{sessionId} endpoint in tests/integration/analysis-api.test.ts
+- [x] T038 [P] [US1] Unit test for text preprocessing module in tests/unit/features/text-preprocessing.test.ts
+- [x] T039 [P] [US1] Unit test for AI analysis module in tests/unit/features/ai-analysis.test.ts
+- [x] T040 [P] [US1] Unit test for analysis display components in tests/unit/features/analysis-display.test.ts
+- [x] T041 [P] [US1] Integration test for complete analysis workflow in tests/integration/analysis-workflow.test.ts
+- [x] T042 [P] [US1] Component test for analysis form widget in tests/unit/widgets/analysis-form.test.tsx
+- [x] T043 [P] [US1] Component test for results dashboard widget in tests/unit/widgets/results-dashboard.test.tsx
 
 ### Module 1: Text Preprocessing (Constitutional Isolation)
 

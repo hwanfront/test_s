@@ -66,7 +66,10 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
           Analysis Summary
         </h2>
         <p className={cn('text-3xl font-bold', getTotalRiskColor())}>
-          {summary.totalRisks} Risk{summary.totalRisks !== 1 ? 's' : ''} Found
+          {summary.totalRisks === 0 
+            ? 'No significant risks found'
+            : `${summary.totalRisks} risk${summary.totalRisks !== 1 ? 's' : ''} found`
+          }
         </p>
       </div>
 
@@ -87,8 +90,8 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
               <div className="text-2xl font-bold">
                 {count}
               </div>
-              <div className="text-sm font-medium capitalize">
-                {level} Risk{count !== 1 ? 's' : ''}
+              <div className="text-sm font-medium">
+                {count === 1 ? '1 ' + level.charAt(0).toUpperCase() + level.slice(1) : count + ' ' + level.charAt(0).toUpperCase() + level.slice(1) + ' Risks'}
               </div>
             </div>
           ))}

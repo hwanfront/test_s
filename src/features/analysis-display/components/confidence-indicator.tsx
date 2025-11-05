@@ -2,7 +2,8 @@ import React from 'react'
 import { cn } from '@/shared/lib'
 
 export interface ConfidenceIndicatorProps {
-  score: number
+  score?: number
+  confidence?: number
   className?: string
   showLabel?: boolean
   size?: 'sm' | 'md' | 'lg'
@@ -14,12 +15,16 @@ export interface ConfidenceIndicatorProps {
  */
 export const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
   score,
+  confidence,
   className,
   showLabel = true,
   size = 'md'
 }) => {
+  // Accept either score or confidence prop for flexibility
+  const inputScore = score ?? confidence ?? 0
+  
   // Normalize score to 0-100 range
-  const normalizedScore = Math.max(0, Math.min(100, score))
+  const normalizedScore = Math.max(0, Math.min(100, inputScore))
 
   const getConfidenceLevel = (score: number): {
     level: string
@@ -29,28 +34,28 @@ export const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
   } => {
     if (score >= 90) {
       return {
-        level: 'Very High',
+        level: 'Very High Confidence',
         color: 'text-green-700',
         bgColor: 'bg-green-600',
         description: 'Highly confident in assessment'
       }
     } else if (score >= 75) {
       return {
-        level: 'High',
+        level: 'High Confidence',
         color: 'text-green-600',
         bgColor: 'bg-green-500',
         description: 'Confident in assessment'
       }
-    } else if (score >= 60) {
+    } else if (score >= 50) {
       return {
-        level: 'Medium',
+        level: 'Medium Confidence',
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-500',
         description: 'Moderately confident'
       }
-    } else if (score >= 40) {
+    } else if (score >= 30) {
       return {
-        level: 'Low',
+        level: 'Low Confidence',
         color: 'text-orange-600',
         bgColor: 'bg-orange-500',
         description: 'Low confidence'
@@ -65,7 +70,7 @@ export const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
     }
   }
 
-  const confidence = getConfidenceLevel(normalizedScore)
+  const confidenceLevel = getConfidenceLevel(normalizedScore)
 
   const sizeStyles = {
     sm: {
@@ -91,12 +96,12 @@ export const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
     <div
       data-testid="confidence-indicator"
       className={cn('flex items-center', styles.container, className)}
-      aria-label={`Confidence: ${normalizedScore}% - ${confidence.description}`}
+      aria-label={`Confidence: ${normalizedScore}% - ${confidenceLevel.description}`}
     >
       {showLabel && (
         <div className={cn('flex items-center gap-1', styles.text)}>
           <span className="text-gray-600 font-medium">Confidence:</span>
-          <span className={cn('font-bold', confidence.color)}>
+          <span className={cn('font-bold', confidenceLevel.color)}>
             {normalizedScore}%
           </span>
         </div>
@@ -106,10 +111,11 @@ export const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
         <div
           className={cn(
             'h-full transition-all duration-300 ease-out',
-            confidence.bgColor
+            confidenceLevel.bgColor
           )}
           style={{ width: `${normalizedScore}%` }}
           role="progressbar"
+          aria-label={`Analysis confidence: ${normalizedScore}%`}
           aria-valuenow={normalizedScore}
           aria-valuemin={0}
           aria-valuemax={100}
@@ -117,8 +123,8 @@ export const ConfidenceIndicator: React.FC<ConfidenceIndicatorProps> = ({
       </div>
 
       {showLabel && (
-        <span className={cn('font-medium', confidence.color, styles.text)}>
-          {confidence.level}
+        <span className={cn('font-medium', confidenceLevel.color, styles.text)}>
+          {confidenceLevel.level}
         </span>
       )}
     </div>

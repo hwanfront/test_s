@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Coverage
+coverage/
+
+# Lock files (managed by package manager)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.tsbuildinfo
+
+# Test results
+test-results/
+playwright-report/
+
+# Configuration files that should not be formatted
+*.min.js
+*.min.css
+*.map
