@@ -195,15 +195,15 @@ T077: Integration test for quota enforcement workflow (TDD)
 ### Quota Management Entity
 
 - [x] T083 [P] [US2] Implement quota calculation utilities in src/entities/quota/lib/quota-calculator.ts
-- [ ] T084 [P] [US2] Implement quota validation service in src/entities/quota/lib/quota-validator.ts
-- [ ] T085 [P] [US2] Create quota reset scheduler in src/entities/quota/lib/quota-scheduler.ts
-- [ ] T086 [P] [US2] Implement quota API client in src/entities/quota/lib/api.ts
+- [x] T084 [P] [US2] Implement quota validation service in src/entities/quota/lib/quota-validator.ts
+- [x] T085 [P] [US2] Create quota reset scheduler in src/entities/quota/lib/quota-scheduler.ts
+- [x] T086 [P] [US2] Implement quota API client in src/entities/quota/lib/api.ts
 
 ### User Entity Services
 
-- [ ] T087 [P] [US2] Implement user profile service in src/entities/user/lib/user-service.ts
-- [ ] T088 [P] [US2] Implement user API client in src/entities/user/lib/api.ts
-- [ ] T089 [P] [US2] Create user profile hooks in src/entities/user/hooks/use-user.ts
+- [x] T087 [P] [US2] Implement user profile service in src/entities/user/lib/user-service.ts
+- [x] T088 [P] [US2] Implement user API client in src/entities/user/lib/api.ts
+- [x] T089 [P] [US2] Create user profile hooks in src/entities/user/hooks/use-user.ts
 
 ### API Routes Implementation
 
