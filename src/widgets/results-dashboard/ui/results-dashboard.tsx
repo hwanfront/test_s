@@ -12,6 +12,7 @@ import { AnalysisSummary } from '@/features/analysis-display/components/analysis
 import { ResultsViewer } from '@/features/analysis-display/components/results-viewer'
 import { ConfidenceIndicator } from '@/features/analysis-display/components/confidence-indicator'
 import { RiskCard } from '@/features/analysis-display/components/risk-card'
+import { PrivacyIndicator, PrivacyStatusBadge } from '@/shared/ui/privacy-indicator'
 import type { AnalysisResults } from '@/features/analysis-display/components/results-viewer'
 
 export interface ResultsDashboardProps {
@@ -193,6 +194,26 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Privacy Compliance Indicator */}
+      {result?.session?.privacyCompliance && (
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            Privacy & Data Protection
+            <PrivacyStatusBadge score={result.session.privacyCompliance.complianceScore} size="sm" />
+          </h3>
+          <PrivacyIndicator
+            privacyCompliance={result.session.privacyCompliance}
+            sessionExpiration={{
+              expiresAt: result.session.expiresAt,
+              timeRemaining: new Date(result.session.expiresAt).getTime() - Date.now(),
+              inGracePeriod: false, // This would be determined by session expiration logic
+              canExtend: true // This would be determined by user permissions and session rules
+            }}
+            variant="compact"
+          />
+        </div>
+      )}
 
       {/* Confidence Indicator */}
       {showConfidenceScores && (

@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+import { AppErrorBoundary } from '@/shared/ui/error-boundary'
+import { GlobalErrorHandler } from './global-error-handler'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,13 +27,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Providers>
-          <div className="min-h-screen bg-white font-sans antialiased">
-            <div className="relative flex min-h-screen flex-col">
-              <main className="flex-1">{children}</main>
+        <GlobalErrorHandler />
+        <AppErrorBoundary>
+          <Providers>
+            <div className="min-h-screen bg-white font-sans antialiased">
+              <div className="relative flex min-h-screen flex-col">
+                <main className="flex-1">{children}</main>
+              </div>
             </div>
-          </div>
-        </Providers>
+          </Providers>
+        </AppErrorBoundary>
       </body>
     </html>
   )

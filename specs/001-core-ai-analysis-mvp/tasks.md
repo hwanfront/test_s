@@ -258,21 +258,21 @@ T077: Integration test for quota enforcement workflow (TDD)
 
 ### Privacy Compliance Utilities
 
-- [ ] T113 [P] [US3] Create privacy audit utilities in src/shared/lib/privacy/audit-utils.ts
-- [ ] T114 [P] [US3] Implement data export functionality in src/shared/lib/privacy/data-export.ts
-- [ ] T115 [P] [US3] Create data deletion utilities in src/shared/lib/privacy/data-deletion.ts
+- [x] T113 [P] [US3] Create privacy audit utilities in src/shared/lib/privacy/audit-utils.ts
+- [x] T114 [P] [US3] Implement data export functionality in src/shared/lib/privacy/data-export.ts
+- [x] T115 [P] [US3] Create data deletion utilities in src/shared/lib/privacy/data-deletion.ts
 
 ### API Routes for Privacy Compliance
 
-- [ ] T116 [US3] Implement GET /api/privacy/audit route in src/app/api/privacy/audit/route.ts
-- [ ] T117 [US3] Implement POST /api/privacy/export route in src/app/api/privacy/export/route.ts
-- [ ] T118 [US3] Implement DELETE /api/privacy/delete route in src/app/api/privacy/delete/route.ts
+- [x] T116 [US3] Implement GET /api/privacy/audit route in src/app/api/privacy/audit/route.ts
+- [x] T117 [US3] Implement POST /api/privacy/export route in src/app/api/privacy/export/route.ts
+- [x] T118 [US3] Implement DELETE /api/privacy/delete route in src/app/api/privacy/delete/route.ts
 
 ### Enhanced Analysis Session Management
 
-- [ ] T119 [US3] Add privacy compliance checks to analysis entity (update T070)
-- [ ] T120 [US3] Implement secure session expiration in src/entities/analysis/lib/session-expiration.ts
-- [ ] T121 [US3] Add privacy indicators to results display (update T059)
+- [x] T119 [US3] Add privacy compliance checks to analysis entity (update T070)
+- [x] T120 [US3] Implement secure session expiration in src/entities/analysis/lib/session-expiration.ts
+- [x] T121 [US3] Add privacy indicators to results display (update T059)
 
 **Checkpoint**: User Story 3 complete - full privacy compliance and data protection implemented
 
@@ -284,10 +284,10 @@ T077: Integration test for quota enforcement workflow (TDD)
 
 ### Documentation and Error Handling
 
-- [ ] T122 [P] Create comprehensive API documentation in docs/api.md
-- [ ] T123 [P] Add error boundary components in src/shared/ui/error-boundary.tsx
-- [ ] T124 [P] Implement global error handling in src/shared/lib/error/global-handler.ts
-- [ ] T125 [P] Create user-friendly error pages in src/app/error.tsx
+- [x] T122 [P] Create comprehensive API documentation in docs/api.md
+- [x] T123 [P] Add error boundary components in src/shared/ui/error-boundary.tsx
+- [x] T124 [P] Implement global error handling in src/shared/lib/error/global-handler.ts
+- [x] T125 [P] Create user-friendly error pages in src/app/error.tsx
 
 ### Performance Optimization
 

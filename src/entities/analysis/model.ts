@@ -26,6 +26,21 @@ export interface AnalysisSession {
     aiLimitationsDisclosed: boolean
     transparencyMaintained: boolean
   }
+  privacyCompliance: {
+    gdprCompliant: boolean
+    ccpaCompliant: boolean
+    dataMinimizationApplied: boolean
+    userConsentObtained: boolean
+    retentionPolicyApplied: boolean
+    encryptionApplied: boolean
+    auditTrailMaintained: boolean
+    rightToErasureSupported: boolean
+    dataPortabilitySupported: boolean
+    privacyByDesign: boolean
+    lastAuditDate?: string
+    complianceScore: number
+    nonComplianceReasons: string[]
+  }
 }
 
 export interface RiskAssessment {
