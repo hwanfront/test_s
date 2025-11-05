@@ -1,5 +1,99 @@
-import { AnalysisResult, RiskAssessment } from './analysis-service'
+/**
+ * AI Response Result Parser and Validator (Task T052)
+ * 
+ * Constitutional Compliance: This module validates and sanitizes AI responses
+ * while maintaining transparency about parsing limitations and data handling
+ */
 
+export interface RawAIResponse {
+  text: string
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+  finishReason?: 'stop' | 'length' | 'safety' | 'recitation'
+  metadata?: {
+    model?: string
+    timestamp?: string
+    requestId?: string
+  }
+}
+
+export interface ParsedAnalysisResult {
+  success: boolean
+  result?: {
+    overallRiskScore: number
+    overallRiskLevel: 'low' | 'medium' | 'high' | 'critical'
+    confidenceScore: number
+    riskAssessments: RiskAssessment[]
+    metadata: {
+      parsedAt: string
+      originalLength: number
+      validationErrors: string[]
+      confidenceAdjustments: string[]
+    }
+  }
+  error?: {
+    code: string
+    message: string
+    details?: any
+  }
+  rawResponse?: {
+    text: string
+    usage?: any
+  }
+}
+
+export interface RiskAssessment {
+  category: string
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  riskScore: number
+  confidenceScore: number
+  summary: string
+  rationale: string
+  suggestedAction?: string
+  startPosition: number
+  endPosition: number
+  validationFlags?: string[]
+  quote?: string // Legacy compatibility
+}
+
+export interface ValidationRule {
+  id: string
+  name: string
+  description: string
+  validator: (data: any, context: ValidationContext) => ValidationResult
+  severity: 'error' | 'warning' | 'info'
+  enabled: boolean
+}
+
+export interface ValidationContext {
+  originalTextLength: number
+  expectedCategories?: string[]
+  minConfidence?: number
+  maxRiskScore?: number
+  requirePositions?: boolean
+}
+
+export interface ValidationResult {
+  valid: boolean
+  message?: string
+  suggestedFix?: any
+  confidence?: number
+}
+
+export interface ParsingOptions {
+  strictMode?: boolean
+  maxRetries?: number
+  fallbackMode?: boolean
+  validatePositions?: boolean
+  adjustConfidence?: boolean
+  sanitizeOutput?: boolean
+  preserveRawResponse?: boolean
+}
+
+// Legacy interface for backward compatibility
 export interface ParsedResponse {
   overallRiskScore: number
   riskLevel: 'low' | 'medium' | 'high' | 'critical'
@@ -8,12 +102,471 @@ export interface ParsedResponse {
 }
 
 /**
- * Parser for AI-generated analysis results
- * Validates and structures responses from Gemini AI
+ * Default validation rules for AI responses
+ */
+export const DEFAULT_VALIDATION_RULES: ValidationRule[] = [
+  {
+    id: 'overall_risk_score_range',
+    name: 'Overall Risk Score Range',
+    description: 'Overall risk score must be between 0 and 100',
+    validator: (data: any) => ({
+      valid: typeof data.overallRiskScore === 'number' && 
+             data.overallRiskScore >= 0 && 
+             data.overallRiskScore <= 100,
+      message: 'Overall risk score must be a number between 0 and 100',
+      suggestedFix: Math.max(0, Math.min(100, Number(data.overallRiskScore) || 0))
+    }),
+    severity: 'error',
+    enabled: true
+  },
+  {
+    id: 'risk_level_enum',
+    name: 'Risk Level Enumeration',
+    description: 'Risk levels must be valid enum values',
+    validator: (data: any) => {
+      const validLevels = ['low', 'medium', 'high', 'critical']
+      return {
+        valid: typeof data.overallRiskLevel === 'string' && 
+               validLevels.includes(data.overallRiskLevel),
+        message: 'Risk level must be one of: low, medium, high, critical',
+        suggestedFix: 'medium'
+      }
+    },
+    severity: 'error',
+    enabled: true
+  },
+  {
+    id: 'confidence_score_range',
+    name: 'Confidence Score Range',
+    description: 'Confidence score must be between 0 and 100',
+    validator: (data: any) => ({
+      valid: typeof data.confidenceScore === 'number' && 
+             data.confidenceScore >= 0 && 
+             data.confidenceScore <= 100,
+      message: 'Confidence score must be a number between 0 and 100',
+      suggestedFix: Math.max(0, Math.min(100, Number(data.confidenceScore) || 50))
+    }),
+    severity: 'error',
+    enabled: true
+  },
+  {
+    id: 'risk_assessments_array',
+    name: 'Risk Assessments Array',
+    description: 'Risk assessments must be an array',
+    validator: (data: any) => ({
+      valid: Array.isArray(data.riskAssessments),
+      message: 'Risk assessments must be an array',
+      suggestedFix: []
+    }),
+    severity: 'error',
+    enabled: true
+  }
+]
+
+/**
+ * Enhanced Result Parser Class (Task T052)
  */
 export class ResultParser {
+  private validationRules: Map<string, ValidationRule>
+  private defaultOptions: Required<ParsingOptions>
+
+  constructor(customRules: ValidationRule[] = []) {
+    this.validationRules = new Map()
+    
+    // Add default rules
+    DEFAULT_VALIDATION_RULES.forEach(rule => {
+      this.validationRules.set(rule.id, rule)
+    })
+    
+    // Add custom rules
+    customRules.forEach(rule => {
+      this.validationRules.set(rule.id, rule)
+    })
+
+    this.defaultOptions = {
+      strictMode: false,
+      maxRetries: 3,
+      fallbackMode: true,
+      validatePositions: true,
+      adjustConfidence: true,
+      sanitizeOutput: true,
+      preserveRawResponse: false
+    }
+  }
   /**
-   * Parse and validate AI response
+   * Parse and validate AI analysis response (Primary Method for Task T052)
+   */
+  async parseAnalysisResponse(
+    rawResponse: RawAIResponse,
+    context: ValidationContext,
+    options: ParsingOptions = {}
+  ): Promise<ParsedAnalysisResult> {
+    const mergedOptions = { ...this.defaultOptions, ...options }
+
+    try {
+      // Extract JSON from response text
+      const extractedData = this.extractJsonFromResponse(rawResponse.text)
+      
+      if (!extractedData.success) {
+        return this.createErrorResult('JSON_EXTRACTION_FAILED', extractedData.error!, rawResponse, mergedOptions)
+      }
+
+      // Validate the extracted data
+      const validationResult = await this.validateExtractedData(
+        extractedData.data,
+        context,
+        mergedOptions
+      )
+
+      if (!validationResult.valid && mergedOptions.strictMode) {
+        return this.createErrorResult(
+          'VALIDATION_FAILED',
+          `Validation failed: ${validationResult.errors.join(', ')}`,
+          rawResponse,
+          mergedOptions
+        )
+      }
+
+      // Sanitize and fix the data
+      const sanitizedData = this.sanitizeAnalysisData(
+        extractedData.data,
+        validationResult,
+        mergedOptions
+      )
+
+      // Calculate adjusted confidence scores
+      const adjustedData = mergedOptions.adjustConfidence 
+        ? this.adjustConfidenceScores(sanitizedData, validationResult)
+        : sanitizedData
+
+      // Create final result
+      const result: ParsedAnalysisResult = {
+        success: true,
+        result: {
+          ...adjustedData,
+          metadata: {
+            parsedAt: new Date().toISOString(),
+            originalLength: rawResponse.text.length,
+            validationErrors: validationResult.errors,
+            confidenceAdjustments: validationResult.adjustments || []
+          }
+        }
+      }
+
+      if (mergedOptions.preserveRawResponse) {
+        result.rawResponse = {
+          text: rawResponse.text,
+          usage: rawResponse.usage
+        }
+      }
+
+      return result
+
+    } catch (error) {
+      return this.createErrorResult(
+        'PARSING_ERROR',
+        error instanceof Error ? error.message : 'Unknown parsing error',
+        rawResponse,
+        mergedOptions
+      )
+    }
+  }
+
+  /**
+   * Extract JSON data from AI response text
+   */
+  private extractJsonFromResponse(responseText: string): { success: boolean; data?: any; error?: string } {
+    try {
+      // Try to find JSON object in the response
+      const jsonMatches = [
+        // Look for complete JSON object
+        responseText.match(/\{[\s\S]*\}/),
+        // Look for JSON between code blocks
+        responseText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/),
+        // Look for JSON after specific markers
+        responseText.match(/(?:```json|JSON|json)\s*(\{[\s\S]*?\})/i)
+      ]
+
+      for (const match of jsonMatches) {
+        if (match) {
+          try {
+            const jsonText = match[1] || match[0]
+            const parsed = JSON.parse(jsonText)
+            return { success: true, data: parsed }
+          } catch (e) {
+            continue
+          }
+        }
+      }
+
+      // If no JSON found, try to extract key-value pairs
+      return this.extractKeyValuePairs(responseText)
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `JSON extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Extract key-value pairs as fallback when JSON parsing fails
+   */
+  private extractKeyValuePairs(text: string): { success: boolean; data?: any; error?: string } {
+    try {
+      const result: any = {}
+
+      // Extract overall risk score
+      const riskScoreMatch = text.match(/(?:overall\s*risk\s*score|overallRiskScore)[\s:]*(\d+)/i)
+      if (riskScoreMatch) {
+        result.overallRiskScore = parseInt(riskScoreMatch[1])
+      }
+
+      // Extract risk level
+      const riskLevelMatch = text.match(/(?:risk\s*level|riskLevel)[\s:]*(?:is\s*)?(low|medium|high|critical)/i)
+      if (riskLevelMatch) {
+        result.overallRiskLevel = riskLevelMatch[1].toLowerCase()
+      }
+
+      // Extract confidence score
+      const confidenceMatch = text.match(/(?:confidence\s*score|confidenceScore)[\s:]*(\d+)/i)
+      if (confidenceMatch) {
+        result.confidenceScore = parseInt(confidenceMatch[1])
+      }
+
+      // Create basic risk assessment if we found indicators
+      result.riskAssessments = []
+      
+      // Look for risk indicators
+      const riskIndicators = [
+        { category: 'general', keywords: ['risk', 'concern', 'problematic', 'unfair'] },
+        { category: 'payment', keywords: ['payment', 'subscription', 'billing', 'refund'] },
+        { category: 'data', keywords: ['data', 'privacy', 'information', 'collect'] },
+        { category: 'account', keywords: ['account', 'terminate', 'suspend', 'ban'] }
+      ]
+
+      for (const indicator of riskIndicators) {
+        const hasKeywords = indicator.keywords.some(keyword => 
+          text.toLowerCase().includes(keyword.toLowerCase())
+        )
+        
+        if (hasKeywords) {
+          result.riskAssessments.push({
+            category: indicator.category,
+            riskLevel: result.overallRiskLevel || 'medium',
+            riskScore: result.overallRiskScore || 50,
+            confidenceScore: 40, // Lower confidence for extracted data
+            summary: `${indicator.category} related risks identified`,
+            rationale: 'Identified through keyword extraction (fallback parsing)',
+            startPosition: 0,
+            endPosition: Math.min(100, text.length)
+          })
+        }
+      }
+
+      if (Object.keys(result).length > 0) {
+        return { success: true, data: result }
+      }
+
+      return {
+        success: false,
+        error: 'Could not extract meaningful data from response'
+      }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: `Key-value extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    }
+  }
+
+  /**
+   * Validate extracted data against rules
+   */
+  private async validateExtractedData(
+    data: any,
+    context: ValidationContext,
+    options: Required<ParsingOptions>
+  ): Promise<{ valid: boolean; errors: string[]; warnings: string[]; fixes: any; adjustments?: string[] }> {
+    const errors: string[] = []
+    const warnings: string[] = []
+    const fixes: any = {}
+    const adjustments: string[] = []
+
+    const enabledRules = Array.from(this.validationRules.values()).filter(rule => rule.enabled)
+
+    for (const rule of enabledRules) {
+      try {
+        const result = rule.validator(data, context)
+        
+        if (!result.valid) {
+          const message = `${rule.name}: ${result.message || 'Validation failed'}`
+          
+          if (rule.severity === 'error') {
+            errors.push(message)
+          } else if (rule.severity === 'warning') {
+            warnings.push(message)
+          }
+
+          if (result.suggestedFix !== undefined) {
+            fixes[rule.id] = result.suggestedFix
+          }
+
+          if (result.confidence !== undefined) {
+            adjustments.push(`${rule.name}: confidence adjusted to ${result.confidence}`)
+          }
+        }
+      } catch (error) {
+        warnings.push(`Validation rule ${rule.id} failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      fixes,
+      adjustments
+    }
+  }
+
+  /**
+   * Sanitize and fix analysis data
+   */
+  private sanitizeAnalysisData(
+    data: any,
+    validationResult: { fixes: any; warnings: string[] },
+    options: Required<ParsingOptions>
+  ): any {
+    const sanitized = { ...data }
+
+    // Apply fixes from validation
+    Object.entries(validationResult.fixes).forEach(([ruleId, fix]) => {
+      if (ruleId === 'overall_risk_score_range') {
+        sanitized.overallRiskScore = fix
+      } else if (ruleId === 'risk_level_enum') {
+        sanitized.overallRiskLevel = fix
+      } else if (ruleId === 'confidence_score_range') {
+        sanitized.confidenceScore = fix
+      } else if (ruleId === 'risk_assessments_array') {
+        sanitized.riskAssessments = fix
+      }
+    })
+
+    // Ensure required fields exist
+    if (sanitized.overallRiskScore === undefined) {
+      sanitized.overallRiskScore = 0
+    }
+    if (sanitized.overallRiskLevel === undefined) {
+      sanitized.overallRiskLevel = 'low'
+    }
+    if (sanitized.confidenceScore === undefined) {
+      sanitized.confidenceScore = 50
+    }
+    if (!Array.isArray(sanitized.riskAssessments)) {
+      sanitized.riskAssessments = []
+    }
+
+    // Sanitize risk assessments
+    sanitized.riskAssessments = sanitized.riskAssessments.map((assessment: any) => {
+      return {
+        category: String(assessment.category || 'unknown').substring(0, 100),
+        riskLevel: this.validateRiskLevel(assessment.riskLevel),
+        riskScore: this.clampScore(assessment.riskScore),
+        confidenceScore: this.clampScore(assessment.confidenceScore),
+        summary: String(assessment.summary || 'Risk identified').substring(0, 200),
+        rationale: String(assessment.rationale || 'No rationale provided').substring(0, 1000),
+        suggestedAction: assessment.suggestedAction ? String(assessment.suggestedAction).substring(0, 500) : undefined,
+        startPosition: Math.max(0, Number(assessment.startPosition) || 0),
+        endPosition: Math.max(0, Number(assessment.endPosition) || 0),
+        validationFlags: assessment.validationFlags || []
+      }
+    })
+
+    return sanitized
+  }
+
+  /**
+   * Adjust confidence scores based on validation results
+   */
+  private adjustConfidenceScores(
+    data: any,
+    validationResult: { warnings: string[]; errors: string[]; adjustments?: string[] }
+  ): any {
+    const adjusted = { ...data }
+
+    // Reduce confidence based on validation issues
+    const totalIssues = validationResult.errors.length + validationResult.warnings.length
+    if (totalIssues > 0) {
+      const confidenceReduction = Math.min(30, totalIssues * 5)
+      adjusted.confidenceScore = Math.max(20, adjusted.confidenceScore - confidenceReduction)
+
+      // Also adjust individual assessment confidence
+      adjusted.riskAssessments = adjusted.riskAssessments.map((assessment: any) => ({
+        ...assessment,
+        confidenceScore: Math.max(20, assessment.confidenceScore - confidenceReduction)
+      }))
+    }
+
+    return adjusted
+  }
+
+  /**
+   * Create error result
+   */
+  private createErrorResult(
+    code: string,
+    message: string,
+    rawResponse: RawAIResponse,
+    options: Required<ParsingOptions>
+  ): ParsedAnalysisResult {
+    const result: ParsedAnalysisResult = {
+      success: false,
+      error: {
+        code,
+        message,
+        details: {
+          originalLength: rawResponse.text.length,
+          finishReason: rawResponse.finishReason
+        }
+      }
+    }
+
+    if (options.preserveRawResponse) {
+      result.rawResponse = {
+        text: rawResponse.text,
+        usage: rawResponse.usage
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Helper methods
+   */
+  private clampScore(score: any): number {
+    const num = Number(score)
+    if (isNaN(num)) return 0
+    return Math.max(0, Math.min(100, Math.round(num)))
+  }
+
+  private validateRiskLevel(level: any): 'low' | 'medium' | 'high' | 'critical' {
+    if (typeof level === 'string') {
+      const normalized = level.toLowerCase()
+      if (['low', 'medium', 'high', 'critical'].includes(normalized)) {
+        return normalized as 'low' | 'medium' | 'high' | 'critical'
+      }
+    }
+    return 'low'
+  }
+
+  // Legacy methods for backward compatibility
+
+  /**
+   * Legacy method - Parse and validate AI response
    * @param responseText Raw text response from AI
    * @returns Validated and structured analysis result
    */
@@ -275,6 +828,108 @@ export class ResultParser {
     return {
       ...result,
       riskAssessments: enhancedAssessments
+    }
+  }
+
+  /**
+   * Rule management methods
+   */
+  addValidationRule(rule: ValidationRule): void {
+    this.validationRules.set(rule.id, rule)
+  }
+
+  removeValidationRule(ruleId: string): boolean {
+    return this.validationRules.delete(ruleId)
+  }
+
+  updateValidationRule(ruleId: string, updates: Partial<ValidationRule>): boolean {
+    const existing = this.validationRules.get(ruleId)
+    if (!existing) return false
+
+    this.validationRules.set(ruleId, { ...existing, ...updates })
+    return true
+  }
+
+  getValidationRule(ruleId: string): ValidationRule | undefined {
+    return this.validationRules.get(ruleId)
+  }
+
+  getAllValidationRules(): ValidationRule[] {
+    return Array.from(this.validationRules.values())
+  }
+
+  getEnabledValidationRules(): ValidationRule[] {
+    return Array.from(this.validationRules.values()).filter(rule => rule.enabled)
+  }
+
+  /**
+   * Create fallback result when all parsing fails
+   */
+  createFallbackResult(
+    rawResponse: RawAIResponse,
+    error: string
+  ): ParsedAnalysisResult {
+    const hasRiskKeywords = /critical|dangerous|concerning|problematic|unfair/i.test(rawResponse.text)
+    const hasMediumRiskKeywords = /questionable|unclear|potentially|may be/i.test(rawResponse.text)
+
+    let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low'
+    let riskScore = 30
+
+    if (hasRiskKeywords) {
+      riskLevel = 'high'
+      riskScore = 75
+    } else if (hasMediumRiskKeywords) {
+      riskLevel = 'medium'
+      riskScore = 50
+    }
+
+    return {
+      success: true,
+      result: {
+        overallRiskScore: riskScore,
+        overallRiskLevel: riskLevel,
+        confidenceScore: 25, // Very low confidence for fallback
+        riskAssessments: [{
+          category: 'general',
+          riskLevel,
+          riskScore,
+          confidenceScore: 25,
+          summary: 'General analysis (parsing failed)',
+          rationale: 'Response parsing failed, providing fallback assessment based on keyword analysis',
+          startPosition: 0,
+          endPosition: Math.min(100, rawResponse.text.length),
+          validationFlags: ['fallback_parsing']
+        }],
+        metadata: {
+          parsedAt: new Date().toISOString(),
+          originalLength: rawResponse.text.length,
+          validationErrors: [error],
+          confidenceAdjustments: ['Fallback parsing applied due to parsing failure']
+        }
+      }
+    }
+  }
+
+  /**
+   * Get parsing statistics
+   */
+  getParsingStats(): {
+    totalRules: number
+    enabledRules: number
+    rulesBySeverity: Record<string, number>
+  } {
+    const allRules = this.getAllValidationRules()
+    const enabledRules = this.getEnabledValidationRules()
+
+    const rulesBySeverity: Record<string, number> = {}
+    allRules.forEach(rule => {
+      rulesBySeverity[rule.severity] = (rulesBySeverity[rule.severity] || 0) + 1
+    })
+
+    return {
+      totalRules: allRules.length,
+      enabledRules: enabledRules.length,
+      rulesBySeverity
     }
   }
 }

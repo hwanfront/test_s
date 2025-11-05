@@ -1,12 +1,57 @@
-export interface PatternMatch {
+/**
+ * Clause Pattern Matcher (Task T050)
+ * 
+ * Constitutional Compliance: This module analyzes preprocessed text patterns
+ * without storing original content, maintaining strict isolation
+ */
+
+export interface ClausePattern {
+  id: string
   category: string
+  name: string
+  description: string
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  keywords: string[]
+  promptTemplate: string
+  weight?: number
+  enabled?: boolean
+  lastUpdated?: string
+}
+
+export interface PatternMatch {
+  patternId: string
+  category: string
+  riskLevel: 'low' | 'medium' | 'high' | 'critical'
   confidence: number
   startPosition: number
   endPosition: number
   matchedText: string
-  keywords: string[]
+  matchedKeywords: string[]
+  context: string
+  weight: number
 }
 
+export interface PatternMatchResult {
+  totalMatches: number
+  highRiskMatches: number
+  mediumRiskMatches: number
+  lowRiskMatches: number
+  matches: PatternMatch[]
+  overallRiskScore: number
+  confidence: number
+  processingTimeMs: number
+}
+
+export interface PatternMatchOptions {
+  caseSensitive?: boolean
+  wholeWordOnly?: boolean
+  maxContextLength?: number
+  minConfidence?: number
+  enabledCategoriesOnly?: boolean
+  customWeights?: Record<string, number>
+}
+
+// Legacy interfaces for backward compatibility
 export interface PatternRule {
   category: string
   patterns: RegExp[]
@@ -16,61 +61,236 @@ export interface PatternRule {
 }
 
 /**
- * Pattern matcher for identifying common problematic clauses in legal documents
- * Uses regex patterns and keyword matching to find potential risks
+ * Mobile Gaming Clause Patterns (Seeded Data)
+ */
+export const MOBILE_GAMING_PATTERNS: ClausePattern[] = [
+  {
+    id: 'mg_001',
+    category: 'payment',
+    name: 'Auto-Renewal Subscription',
+    description: 'Clauses about automatic subscription renewals that may be difficult to cancel',
+    riskLevel: 'high',
+    keywords: ['auto-renew', 'automatically renewed', 'continuous subscription', 'recurring billing', 'auto-billing'],
+    promptTemplate: 'Analyze this clause for automatic renewal terms and potential difficulty in cancellation',
+    weight: 0.8,
+    enabled: true
+  },
+  {
+    id: 'mg_002',
+    category: 'payment',
+    name: 'In-App Purchase Restrictions',
+    description: 'Terms that limit refunds or returns for in-app purchases',
+    riskLevel: 'critical',
+    keywords: ['no refund', 'final sale', 'non-refundable', 'virtual currency', 'in-app purchase'],
+    promptTemplate: 'Examine this clause for unfair restrictions on in-app purchase refunds',
+    weight: 1.0,
+    enabled: true
+  },
+  {
+    id: 'mg_003',
+    category: 'data',
+    name: 'Broad Data Collection',
+    description: 'Excessive personal data collection beyond game functionality',
+    riskLevel: 'high',
+    keywords: ['collect personal data', 'usage information', 'device information', 'location data', 'behavioral data'],
+    promptTemplate: 'Assess whether data collection is proportionate to game functionality',
+    weight: 0.7,
+    enabled: true
+  },
+  {
+    id: 'mg_004',
+    category: 'data',
+    name: 'Third-Party Data Sharing',
+    description: 'Sharing user data with advertisers or unknown third parties',
+    riskLevel: 'critical',
+    keywords: ['share with partners', 'third-party services', 'advertising partners', 'analytics providers', 'data sharing'],
+    promptTemplate: 'Analyze data sharing practices with third parties and user control',
+    weight: 0.9,
+    enabled: true
+  },
+  {
+    id: 'mg_005',
+    category: 'account',
+    name: 'Account Termination',
+    description: 'Broad company rights to terminate accounts without clear reasons',
+    riskLevel: 'medium',
+    keywords: ['terminate account', 'suspend access', 'ban user', 'sole discretion', 'violation'],
+    promptTemplate: 'Review account termination clauses for fairness and due process',
+    weight: 0.6,
+    enabled: true
+  },
+  {
+    id: 'mg_006',
+    category: 'content',
+    name: 'User Content Rights',
+    description: 'Terms giving the company broad rights over user-generated content',
+    riskLevel: 'medium',
+    keywords: ['user content', 'license to use', 'intellectual property', 'royalty-free', 'perpetual license'],
+    promptTemplate: 'Evaluate user content licensing terms for fairness',
+    weight: 0.5,
+    enabled: true
+  },
+  {
+    id: 'mg_007',
+    category: 'liability',
+    name: 'Limitation of Liability',
+    description: 'Clauses that excessively limit company liability for damages',
+    riskLevel: 'high',
+    keywords: ['limit liability', 'no damages', 'exclude liability', 'maximum liability', 'not responsible'],
+    promptTemplate: 'Assess whether liability limitations are reasonable and legal',
+    weight: 0.7,
+    enabled: true
+  },
+  {
+    id: 'mg_008',
+    category: 'dispute',
+    name: 'Mandatory Arbitration',
+    description: 'Requirements for arbitration that may limit user legal rights',
+    riskLevel: 'high',
+    keywords: ['binding arbitration', 'waive right to jury', 'class action waiver', 'arbitration clause', 'dispute resolution'],
+    promptTemplate: 'Examine arbitration requirements and their impact on user rights',
+    weight: 0.8,
+    enabled: true
+  },
+  {
+    id: 'mg_009',
+    category: 'changes',
+    name: 'Unilateral Terms Changes',
+    description: 'Company rights to change terms without user consent or notice',
+    riskLevel: 'medium',
+    keywords: ['modify terms', 'change agreement', 'update terms', 'unilateral changes', 'without notice'],
+    promptTemplate: 'Review terms modification clauses for adequate user protection',
+    weight: 0.6,
+    enabled: true
+  },
+  {
+    id: 'mg_010',
+    category: 'virtual_goods',
+    name: 'Virtual Currency Restrictions',
+    description: 'Terms that devalue or restrict virtual currency and items',
+    riskLevel: 'high',
+    keywords: ['virtual currency', 'game currency', 'no real value', 'virtual items', 'digital goods'],
+    promptTemplate: 'Analyze virtual currency terms for fairness and transparency',
+    weight: 0.7,
+    enabled: true
+  }
+]
+
+/**
+ * Main Pattern Matcher Class
  */
 export class PatternMatcher {
-  private rules: PatternRule[]
+  private patterns: Map<string, ClausePattern>
+  private defaultOptions: Required<PatternMatchOptions>
+  private legacyRules: PatternRule[] // For backward compatibility
 
-  constructor() {
-    this.rules = this.initializeRules()
-  }
+  constructor(patterns: ClausePattern[] = MOBILE_GAMING_PATTERNS) {
+    this.patterns = new Map()
+    patterns.forEach(pattern => this.patterns.set(pattern.id, pattern))
 
-  /**
-   * Find all pattern matches in the given content
-   * @param content Text content to analyze
-   * @returns Array of pattern matches
-   */
-  findPatterns(content: string): PatternMatch[] {
-    const matches: PatternMatch[] = []
-
-    for (const rule of this.rules) {
-      const ruleMatches = this.findRuleMatches(content, rule)
-      matches.push(...ruleMatches)
+    this.defaultOptions = {
+      caseSensitive: false,
+      wholeWordOnly: true,
+      maxContextLength: 200,
+      minConfidence: 0.1,
+      enabledCategoriesOnly: true,
+      customWeights: {}
     }
 
-    // Sort by confidence score (highest first)
-    return matches.sort((a, b) => b.confidence - a.confidence)
+    this.legacyRules = this.initializeLegacyRules()
   }
 
   /**
-   * Find matches for a specific rule
+   * Main pattern matching method (Task T050)
    */
-  private findRuleMatches(content: string, rule: PatternRule): PatternMatch[] {
+  async matchPatterns(
+    text: string,
+    options: PatternMatchOptions = {}
+  ): Promise<PatternMatchResult> {
+    const startTime = Date.now()
+    const mergedOptions = { ...this.defaultOptions, ...options }
+    
     const matches: PatternMatch[] = []
+    const enabledPatterns = Array.from(this.patterns.values())
+      .filter(pattern => !mergedOptions.enabledCategoriesOnly || pattern.enabled !== false)
 
-    // Check regex patterns
-    for (const pattern of rule.patterns) {
-      let match
-      while ((match = pattern.exec(content)) !== null) {
-        const startPosition = match.index
-        const endPosition = match.index + match[0].length
-        const matchedText = match[0]
+    // Process each pattern
+    for (const pattern of enabledPatterns) {
+      const patternMatches = await this.findPatternMatches(text, pattern, mergedOptions)
+      matches.push(...patternMatches)
+    }
 
-        // Calculate confidence based on context and keywords
-        const confidence = this.calculateConfidence(matchedText, content, rule)
+    // Sort matches by position
+    matches.sort((a, b) => a.startPosition - b.startPosition)
 
-        matches.push({
-          category: rule.category,
-          confidence,
-          startPosition,
-          endPosition,
-          matchedText,
-          keywords: rule.keywords
-        })
+    // Remove overlapping matches (keep highest confidence)
+    const deduplicatedMatches = this.removeDuplicateMatches(matches)
 
-        // Prevent infinite loop for global patterns
-        if (!pattern.global) break
+    // Calculate statistics
+    const stats = this.calculateMatchStatistics(deduplicatedMatches)
+    const processingTimeMs = Date.now() - startTime
+
+    return {
+      ...stats,
+      matches: deduplicatedMatches,
+      processingTimeMs
+    }
+  }
+
+  /**
+   * Find matches for a specific pattern
+   */
+  private async findPatternMatches(
+    text: string,
+    pattern: ClausePattern,
+    options: Required<PatternMatchOptions>
+  ): Promise<PatternMatch[]> {
+    const matches: PatternMatch[] = []
+    const processedText = options.caseSensitive ? text : text.toLowerCase()
+    const weight = options.customWeights[pattern.id] || pattern.weight || 1.0
+
+    for (const keyword of pattern.keywords) {
+      const searchKeyword = options.caseSensitive ? keyword : keyword.toLowerCase()
+      
+      let startIndex = 0
+      while (true) {
+        let matchIndex = processedText.indexOf(searchKeyword, startIndex)
+        
+        if (matchIndex === -1) break
+
+        // Check whole word requirement
+        if (options.wholeWordOnly && !this.isWholeWordMatch(processedText, matchIndex, searchKeyword)) {
+          startIndex = matchIndex + 1
+          continue
+        }
+
+        // Calculate confidence based on keyword match quality
+        const confidence = this.calculateMatchConfidence(
+          text,
+          matchIndex,
+          searchKeyword,
+          pattern,
+          weight
+        )
+
+        if (confidence >= options.minConfidence) {
+          const context = this.extractContext(text, matchIndex, searchKeyword.length, options.maxContextLength)
+          
+          matches.push({
+            patternId: pattern.id,
+            category: pattern.category,
+            riskLevel: pattern.riskLevel,
+            confidence,
+            startPosition: matchIndex,
+            endPosition: matchIndex + searchKeyword.length,
+            matchedText: text.substring(matchIndex, matchIndex + searchKeyword.length),
+            matchedKeywords: [keyword],
+            context,
+            weight
+          })
+        }
+
+        startIndex = matchIndex + 1
       }
     }
 
@@ -78,50 +298,281 @@ export class PatternMatcher {
   }
 
   /**
-   * Calculate confidence score for a match
+   * Check if match is a whole word
    */
-  private calculateConfidence(matchedText: string, fullContent: string, rule: PatternRule): number {
-    let confidence = rule.weight // Base confidence from rule weight
+  private isWholeWordMatch(text: string, index: number, keyword: string): boolean {
+    const before = index > 0 ? text[index - 1] : ' '
+    const after = index + keyword.length < text.length ? text[index + keyword.length] : ' '
+    
+    const wordBoundaryRegex = /[^a-zA-Z0-9_]/
+    return wordBoundaryRegex.test(before) && wordBoundaryRegex.test(after)
+  }
 
-    // Boost confidence if multiple keywords are present
-    const keywordMatches = rule.keywords.filter(keyword => 
-      matchedText.toLowerCase().includes(keyword.toLowerCase())
+  /**
+   * Calculate match confidence score
+   */
+  private calculateMatchConfidence(
+    text: string,
+    matchIndex: number,
+    keyword: string,
+    pattern: ClausePattern,
+    weight: number
+  ): number {
+    let confidence = 0.5 // Base confidence
+
+    // Adjust for keyword length (longer keywords are more specific)
+    confidence += Math.min(0.3, keyword.length * 0.02)
+
+    // Adjust for pattern weight
+    confidence *= weight
+
+    // Adjust for risk level (higher risk patterns get slightly higher confidence)
+    const riskBonus = {
+      'low': 0.0,
+      'medium': 0.05,
+      'high': 0.1,
+      'critical': 0.15
+    }
+    confidence += riskBonus[pattern.riskLevel] || 0
+
+    // Context analysis - check for related keywords nearby
+    const contextRadius = 50
+    const contextStart = Math.max(0, matchIndex - contextRadius)
+    const contextEnd = Math.min(text.length, matchIndex + keyword.length + contextRadius)
+    const contextText = text.substring(contextStart, contextEnd).toLowerCase()
+
+    // Count other keywords from the same pattern in nearby context
+    const relatedKeywords = pattern.keywords.filter(k => 
+      k.toLowerCase() !== keyword.toLowerCase() && 
+      contextText.includes(k.toLowerCase())
     )
-    confidence += keywordMatches.length * 5
+    confidence += relatedKeywords.length * 0.1
 
-    // Boost confidence based on context around the match
-    const context = this.getContext(matchedText, fullContent, 50)
-    const contextKeywords = rule.keywords.filter(keyword =>
-      context.toLowerCase().includes(keyword.toLowerCase())
-    )
-    confidence += contextKeywords.length * 3
+    return Math.min(1.0, Math.max(0.0, confidence))
+  }
 
-    // Reduce confidence for very short matches
-    if (matchedText.length < 20) {
-      confidence -= 10
+  /**
+   * Extract context around a match
+   */
+  private extractContext(text: string, matchIndex: number, matchLength: number, maxLength: number): string {
+    const beforeLength = Math.floor((maxLength - matchLength) / 2)
+    const afterLength = maxLength - matchLength - beforeLength
+
+    const start = Math.max(0, matchIndex - beforeLength)
+    const end = Math.min(text.length, matchIndex + matchLength + afterLength)
+
+    let context = text.substring(start, end)
+
+    // Add ellipsis if truncated
+    if (start > 0) context = '...' + context
+    if (end < text.length) context = context + '...'
+
+    return context
+  }
+
+  /**
+   * Remove overlapping matches, keeping highest confidence
+   */
+  private removeDuplicateMatches(matches: PatternMatch[]): PatternMatch[] {
+    if (matches.length <= 1) return matches
+
+    const sorted = [...matches].sort((a, b) => b.confidence - a.confidence)
+    const result: PatternMatch[] = []
+
+    for (const match of sorted) {
+      const hasOverlap = result.some(existing => 
+        this.hasOverlap(match, existing)
+      )
+
+      if (!hasOverlap) {
+        result.push(match)
+      }
     }
 
-    // Cap confidence at 100
-    return Math.min(confidence, 100)
+    return result.sort((a, b) => a.startPosition - b.startPosition)
   }
 
   /**
-   * Get context around a matched text
+   * Check if two matches overlap
    */
-  private getContext(matchedText: string, fullContent: string, contextLength: number): string {
-    const matchIndex = fullContent.indexOf(matchedText)
-    if (matchIndex === -1) return matchedText
-
-    const start = Math.max(0, matchIndex - contextLength)
-    const end = Math.min(fullContent.length, matchIndex + matchedText.length + contextLength)
-
-    return fullContent.substring(start, end)
+  private hasOverlap(match1: PatternMatch, match2: PatternMatch): boolean {
+    return !(match1.endPosition <= match2.startPosition || match2.endPosition <= match1.startPosition)
   }
 
   /**
-   * Initialize pattern recognition rules
+   * Calculate match statistics
    */
-  private initializeRules(): PatternRule[] {
+  private calculateMatchStatistics(matches: PatternMatch[]): Omit<PatternMatchResult, 'matches' | 'processingTimeMs'> {
+    const totalMatches = matches.length
+    const highRiskMatches = matches.filter(m => m.riskLevel === 'high' || m.riskLevel === 'critical').length
+    const mediumRiskMatches = matches.filter(m => m.riskLevel === 'medium').length
+    const lowRiskMatches = matches.filter(m => m.riskLevel === 'low').length
+
+    // Calculate overall risk score
+    let weightedRiskSum = 0
+    let totalWeight = 0
+
+    for (const match of matches) {
+      const riskValue = this.getRiskValue(match.riskLevel)
+      const weight = match.weight * match.confidence
+      weightedRiskSum += riskValue * weight
+      totalWeight += weight
+    }
+
+    const overallRiskScore = totalWeight > 0 ? Math.round((weightedRiskSum / totalWeight) * 100) / 100 : 0
+
+    // Calculate overall confidence
+    const avgConfidence = matches.length > 0 
+      ? matches.reduce((sum, match) => sum + match.confidence, 0) / matches.length 
+      : 0
+
+    return {
+      totalMatches,
+      highRiskMatches,
+      mediumRiskMatches,
+      lowRiskMatches,
+      overallRiskScore,
+      confidence: Math.round(avgConfidence * 100) / 100
+    }
+  }
+
+  /**
+   * Convert risk level to numeric value
+   */
+  private getRiskValue(riskLevel: string): number {
+    const values = {
+      'low': 25,
+      'medium': 50,
+      'high': 75,
+      'critical': 100
+    }
+    return values[riskLevel as keyof typeof values] || 0
+  }
+
+  /**
+   * Pattern management methods
+   */
+  addPattern(pattern: ClausePattern): void {
+    this.patterns.set(pattern.id, {
+      ...pattern,
+      enabled: pattern.enabled !== false,
+      lastUpdated: new Date().toISOString()
+    })
+  }
+
+  removePattern(patternId: string): boolean {
+    return this.patterns.delete(patternId)
+  }
+
+  updatePattern(patternId: string, updates: Partial<ClausePattern>): boolean {
+    const existing = this.patterns.get(patternId)
+    if (!existing) return false
+
+    this.patterns.set(patternId, {
+      ...existing,
+      ...updates,
+      lastUpdated: new Date().toISOString()
+    })
+    return true
+  }
+
+  getPattern(patternId: string): ClausePattern | undefined {
+    return this.patterns.get(patternId)
+  }
+
+  getAllPatterns(): ClausePattern[] {
+    return Array.from(this.patterns.values())
+  }
+
+  getPatternsByCategory(category: string): ClausePattern[] {
+    return Array.from(this.patterns.values()).filter(p => p.category === category)
+  }
+
+  getEnabledPatterns(): ClausePattern[] {
+    return Array.from(this.patterns.values()).filter(p => p.enabled !== false)
+  }
+
+  /**
+   * Export/Import patterns for backup and sharing
+   */
+  exportPatterns(): string {
+    return JSON.stringify(Array.from(this.patterns.values()), null, 2)
+  }
+
+  importPatterns(patternsJson: string): number {
+    try {
+      const patterns: ClausePattern[] = JSON.parse(patternsJson)
+      let imported = 0
+
+      for (const pattern of patterns) {
+        if (pattern.id && pattern.category && pattern.name) {
+          this.addPattern(pattern)
+          imported++
+        }
+      }
+
+      return imported
+    } catch (error) {
+      throw new Error(`Failed to import patterns: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  /**
+   * Get pattern matching statistics
+   */
+  getPatternStats(): {
+    totalPatterns: number
+    enabledPatterns: number
+    patternsByCategory: Record<string, number>
+    patternsByRisk: Record<string, number>
+  } {
+    const allPatterns = this.getAllPatterns()
+    const enabledPatterns = this.getEnabledPatterns()
+
+    const patternsByCategory: Record<string, number> = {}
+    const patternsByRisk: Record<string, number> = {}
+
+    allPatterns.forEach(pattern => {
+      patternsByCategory[pattern.category] = (patternsByCategory[pattern.category] || 0) + 1
+      patternsByRisk[pattern.riskLevel] = (patternsByRisk[pattern.riskLevel] || 0) + 1
+    })
+
+    return {
+      totalPatterns: allPatterns.length,
+      enabledPatterns: enabledPatterns.length,
+      patternsByCategory,
+      patternsByRisk
+    }
+  }
+
+  // Legacy methods for backward compatibility
+  /**
+   * Legacy method - Find all pattern matches in the given content
+   * @param content Text content to analyze
+   * @returns Array of pattern matches (legacy format)
+   */
+  async findPatterns(content: string): Promise<Array<{
+    category: string
+    confidence: number
+    startPosition: number
+    endPosition: number
+    matchedText: string
+    keywords: string[]
+  }>> {
+    const result = await this.matchPatterns(content)
+    
+    // Convert new format to legacy format
+    return result.matches.map(match => ({
+      category: match.category,
+      confidence: Math.round(match.confidence * 100),
+      startPosition: match.startPosition,
+      endPosition: match.endPosition,
+      matchedText: match.matchedText,
+      keywords: match.matchedKeywords
+    }))
+  }
+
+  private initializeLegacyRules(): PatternRule[] {
     return [
       {
         category: 'account-termination',
@@ -144,114 +595,50 @@ export class PatternMatcher {
         keywords: ['virtual currency', 'no value', 'forfeited', 'real-world value', 'confiscated'],
         weight: 75,
         description: 'Virtual currency with no real-world value or risk of forfeiture'
-      },
-      {
-        category: 'data-collection',
-        patterns: [
-          /we\s+(?:collect|gather|obtain|acquire)\s+(?:all\s+)?(?:your\s+)?personal\s+(?:information|data)/gi,
-          /(?:personal\s+)?(?:information|data)\s+(?:may\s+be\s+)?(?:shared|sold|transferred)\s+(?:with\s+|to\s+)?(?:third\s+parties|partners|affiliates)/gi,
-          /we\s+(?:may\s+)?(?:share|sell|transfer|disclose)\s+(?:your\s+)?(?:personal\s+)?(?:information|data)/gi
-        ],
-        keywords: ['collect', 'personal information', 'share', 'third parties', 'data', 'privacy'],
-        weight: 70,
-        description: 'Extensive personal data collection or sharing with third parties'
-      },
-      {
-        category: 'liability-limitation',
-        patterns: [
-          /we\s+(?:are\s+)?not\s+(?:liable|responsible)\s+for\s+any\s+(?:damages?|losses?|harm)/gi,
-          /(?:limitation\s+of\s+)?liability\s*:\s*(?:we\s+)?(?:disclaim|exclude|limit)\s+(?:all\s+)?(?:liability|responsibility)/gi,
-          /to\s+the\s+(?:maximum\s+)?extent\s+permitted\s+by\s+law\s*,?\s*we\s+(?:disclaim|exclude|limit)/gi
-        ],
-        keywords: ['not liable', 'limitation of liability', 'disclaim', 'maximum extent', 'damages'],
-        weight: 60,
-        description: 'Broad limitation or exclusion of service provider liability'
-      },
-      {
-        category: 'content-ownership',
-        patterns: [
-          /(?:all\s+)?(?:user\s+)?content\s+(?:becomes\s+|is\s+)?(?:our\s+)?(?:property|owned\s+by\s+us)/gi,
-          /you\s+(?:grant|give)\s+us\s+(?:a\s+)?(?:perpetual|irrevocable|worldwide)\s+(?:license|right)/gi,
-          /we\s+(?:own|retain)\s+(?:all\s+)?(?:rights|ownership)\s+(?:to\s+|in\s+)?(?:user\s+)?content/gi
-        ],
-        keywords: ['content ownership', 'perpetual license', 'irrevocable', 'user content', 'property'],
-        weight: 65,
-        description: 'Claims of ownership or broad rights over user-generated content'
-      },
-      {
-        category: 'dispute-resolution',
-        patterns: [
-          /(?:all\s+)?disputes?\s+(?:must\s+be\s+|will\s+be\s+)?resolved\s+(?:through\s+|by\s+)?arbitration/gi,
-          /you\s+(?:waive|give\s+up)\s+(?:your\s+)?right\s+to\s+(?:a\s+)?(?:jury\s+trial|class\s+action)/gi,
-          /(?:binding\s+)?arbitration\s+(?:clause|agreement|provision)/gi
-        ],
-        keywords: ['arbitration', 'waive', 'jury trial', 'class action', 'binding', 'disputes'],
-        weight: 55,
-        description: 'Mandatory arbitration or waiver of legal rights'
-      },
-      {
-        category: 'automatic-renewal',
-        patterns: [
-          /(?:subscription|service)\s+(?:will\s+)?(?:automatically\s+)?(?:renew|continue|extend)/gi,
-          /(?:auto[\s-]?renewal|automatic\s+renewal|automatic\s+billing)/gi,
-          /unless\s+you\s+cancel\s+(?:before\s+|prior\s+to\s+)?(?:the\s+)?(?:renewal\s+)?(?:date|period)/gi
-        ],
-        keywords: ['automatic renewal', 'auto-renewal', 'automatically renew', 'unless you cancel'],
-        weight: 50,
-        description: 'Automatic subscription renewal without explicit consent'
-      },
-      {
-        category: 'price-changes',
-        patterns: [
-          /we\s+(?:reserve\s+the\s+right\s+to\s+|may\s+)?(?:change|modify|adjust|increase)\s+(?:our\s+)?(?:prices?|fees?|rates?)/gi,
-          /(?:prices?|fees?|rates?)\s+(?:are\s+)?subject\s+to\s+change\s+(?:at\s+any\s+time)?(?:\s+without\s+notice)?/gi,
-          /(?:pricing|fee)\s+(?:changes|modifications)\s+(?:without\s+(?:notice|warning))/gi
-        ],
-        keywords: ['price changes', 'fees subject to change', 'without notice', 'reserve the right'],
-        weight: 45,
-        description: 'Unilateral price changes without adequate notice'
       }
     ]
   }
 
   /**
-   * Add a custom pattern rule
+   * Legacy method - Add a custom pattern rule
    */
   addRule(rule: PatternRule): void {
-    this.rules.push(rule)
+    this.legacyRules.push(rule)
   }
 
   /**
-   * Remove a pattern rule by category
+   * Legacy method - Remove a pattern rule by category
    */
   removeRule(category: string): void {
-    this.rules = this.rules.filter(rule => rule.category !== category)
+    this.legacyRules = this.legacyRules.filter((rule: PatternRule) => rule.category !== category)
   }
 
   /**
-   * Get all available pattern categories
+   * Legacy method - Get all available pattern categories
    */
   getCategories(): string[] {
-    return this.rules.map(rule => rule.category)
+    const newCategories = this.getAllPatterns().map(p => p.category)
+    const legacyCategories = this.legacyRules.map((rule: PatternRule) => rule.category)
+    return [...new Set([...newCategories, ...legacyCategories])]
   }
 
   /**
-   * Get statistics about pattern matching
+   * Legacy method - Get statistics about pattern matching
    */
-  getStats(content: string): { 
+  async getStats(content: string): Promise<{ 
     totalMatches: number
     categoryCounts: Record<string, number>
     averageConfidence: number
-  } {
-    const matches = this.findPatterns(content)
+  }> {
+    const matches = await this.findPatterns(content)
     
     const categoryCounts: Record<string, number> = {}
-    matches.forEach(match => {
+    matches.forEach((match: any) => {
       categoryCounts[match.category] = (categoryCounts[match.category] || 0) + 1
     })
 
     const averageConfidence = matches.length > 0 
-      ? matches.reduce((sum, match) => sum + match.confidence, 0) / matches.length
+      ? matches.reduce((sum: any, match: any) => sum + match.confidence, 0) / matches.length
       : 0
 
     return {

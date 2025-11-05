@@ -7,7 +7,9 @@ export {
   type AnalysisInput,
   type AnalysisResult,
   type RiskAssessment,
-  type AnalysisSummary
+  type AnalysisSummary,
+  type AnalysisContext,
+  type AnalysisOptions
 } from './lib/analysis-service'
 
 export {
@@ -31,6 +33,15 @@ export {
   ResultParser,
   type ParsedResponse
 } from './lib/result-parser'
+
+export {
+  MobileGamingSeeder,
+  createSeededPatternMatcher,
+  DEFAULT_MOBILE_GAMING_SEEDING_OPTIONS,
+  type MobileGamingPatternCategory,
+  type SeedingResult,
+  type SeedingOptions
+} from './lib/mobile-gaming-seeder'
 
 // Analysis Workflow Component
 export { AnalysisWorkflow } from './components/analysis-workflow'

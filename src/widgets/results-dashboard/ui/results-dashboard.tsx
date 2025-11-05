@@ -142,7 +142,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   // Get computed values after checking for valid result
   const sortedRisks = getSortedRisks()
   const riskCounts = getRiskCounts()
-  const riskDistribution = calculateRiskDistribution(riskCounts)
+  const riskDistribution = calculateRiskDistribution(riskCounts) || { critical: 0, high: 0, medium: 0, low: 0 }
 
   const renderAnalysisSummary = () => (
     <div data-testid="analysis-summary-section" className="space-y-6">
@@ -188,7 +188,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             >
               <div className="text-2xl font-bold">{riskCounts[level]}</div>
               <div className="text-sm font-medium">{riskCounts[level]} {formatRiskLevel(level)}</div>
-              <div className="text-xs mt-1">{riskDistribution[level]}% of total</div>
+              <div className="text-xs mt-1">{riskDistribution?.[level] ?? 0}% of total</div>
             </div>
           ))}
         </div>
