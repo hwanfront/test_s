@@ -75,11 +75,14 @@ export interface ProcessingStep {
  */
 export const GET = withErrorHandler(async (
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) => {
   const startTime = Date.now()
   
   try {
+    // Await params in Next.js 16
+    const { sessionId } = await params
+    
     // Verify authentication
     const token = await getToken({ req: request })
     if (!token || !token.userId) {
@@ -87,7 +90,6 @@ export const GET = withErrorHandler(async (
     }
 
     // Validate session ID
-    const sessionId = params.sessionId
     if (!sessionId || sessionId.trim().length === 0) {
       throw new ApiError(400, 'Session ID is required')
     }

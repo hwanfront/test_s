@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-export interface ApiError {
+export interface ApiErrorResponse {
   error: string
   message: string
   details?: any
@@ -18,7 +18,7 @@ export class AppError extends Error {
   }
 }
 
-export const handleApiError = (error: unknown): NextResponse<ApiError> => {
+export const handleApiError = (error: unknown): NextResponse<ApiErrorResponse> => {
   console.error('API Error:', error)
 
   if (error instanceof AppError) {

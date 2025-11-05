@@ -1,8 +1,24 @@
 export type {
   AnalysisSession,
-  AnalysisResult,
+  RiskAssessment,
+  CreateAnalysisSessionData,
+  UpdateAnalysisSessionData,
   AnalysisIssue,
   AnalysisMetadata,
-  AnalysisSessionCreateData,
-  AnalysisResultCreateData,
 } from './model'
+
+export type {
+  AnalysisApiClient,
+  CreateAnalysisRequestData,
+  AnalysisSessionResponse,
+  AnalysisSessionDetailResponse,
+  AnalysisStatusResponse,
+  AnalysisApiError,
+} from './lib/api'
+
+export type {
+  AnalysisEntityService,
+} from './lib/analysis-service'
+
+export { analysisApiClient } from './lib/api'
+export { analysisEntityService } from './lib/analysis-service'

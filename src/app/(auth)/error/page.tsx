@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
-export default function AuthErrorPage() {
+function ErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
@@ -39,6 +40,34 @@ export default function AuthErrorPage() {
   }
 
   return (
+    <>
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <p className="text-sm">{getErrorMessage(error)}</p>
+      </div>
+
+      <div className="text-center space-y-4">
+        <Link
+          href="/auth/signin"
+          className="inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+        >
+          Try Again
+        </Link>
+        
+        <div>
+          <Link
+            href="/"
+            className="text-sm text-gray-600 hover:text-gray-900"
+          >
+            Return to Home
+          </Link>
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
@@ -47,27 +76,13 @@ export default function AuthErrorPage() {
           </h2>
         </div>
         
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          <p className="text-sm">{getErrorMessage(error)}</p>
-        </div>
-
-        <div className="text-center space-y-4">
-          <Link
-            href="/auth/signin"
-            className="inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
-          >
-            Try Again
-          </Link>
-          
-          <div>
-            <Link
-              href="/"
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Return to Home
-            </Link>
+        <Suspense fallback={
+          <div className="bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded">
+            <p className="text-sm">Loading error details...</p>
           </div>
-        </div>
+        }>
+          <ErrorContent />
+        </Suspense>
       </div>
     </div>
   )

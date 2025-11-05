@@ -38,7 +38,7 @@ export const validateRequest = async <T>(
     return await schema.parseAsync(data)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const fieldErrors = error.errors.map((err: z.ZodIssue) => ({
+      const fieldErrors = error.issues.map((err: z.ZodIssue) => ({
         field: err.path.join('.'),
         message: err.message,
       }))

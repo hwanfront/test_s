@@ -14,7 +14,7 @@ export const testApiHandler = async (
   const { method = 'GET', body, query, headers } = options
   
   const { req, res } = createMocks({
-    method,
+    method: method as any,
     body,
     query,
     headers: {
@@ -51,7 +51,7 @@ export const waitFor = (ms: number) => new Promise(resolve => setTimeout(resolve
 // Test environment setup
 export const setupTestEnvironment = () => {
   // Set test environment variables
-  process.env.NODE_ENV = 'test'
+  // NODE_ENV is read-only in production builds
   process.env.NEXTAUTH_SECRET = 'test-secret'
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'

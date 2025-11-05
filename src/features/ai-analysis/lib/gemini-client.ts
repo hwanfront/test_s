@@ -5,7 +5,14 @@
  * and ensures transparent, ethical AI processing with clear limitations
  */
 
-import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai'
+import { 
+  GoogleGenerativeAI, 
+  GenerativeModel, 
+  GenerationConfig, 
+  SafetySetting,
+  HarmCategory,
+  HarmBlockThreshold
+} from '@google/generative-ai'
 
 export interface GeminiConfig {
   apiKey?: string
@@ -15,11 +22,6 @@ export interface GeminiConfig {
   topP?: number
   topK?: number
   safetySettings?: SafetySetting[]
-}
-
-export interface SafetySetting {
-  category: string
-  threshold: string
 }
 
 export interface AnalysisPrompt {
@@ -382,20 +384,20 @@ export class GeminiClient {
   private getDefaultSafetySettings(): SafetySetting[] {
     return [
       {
-        category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
       },
       {
-        category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
       },
       {
-        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
       },
       {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
       }
     ]
   }

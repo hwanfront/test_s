@@ -25,7 +25,7 @@ export interface AnalysisContext {
   industry?: string
   jurisdiction?: string
   userRole?: string
-  analysisDepth?: 'basic' | 'standard' | 'comprehensive'
+  analysisDepth?: 'basic' | 'comprehensive' | 'detailed'
   focusAreas?: string[]
   customInstructions?: string
   sessionId?: string

@@ -1,7 +1,7 @@
 'use client'
 
 import { signIn, getProviders } from 'next-auth/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 interface Provider {
@@ -12,7 +12,7 @@ interface Provider {
   callbackUrl: string
 }
 
-export default function SignInPage() {
+function SignInContent() {
   const [providers, setProviders] = useState<Record<string, Provider> | null>(null)
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
@@ -94,6 +94,28 @@ export default function SignInPage() {
             By signing in, you agree to our terms of service and privacy policy.
           </p>
         </div>
+      </div>
+    </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
+        </div>
+        
+        <Suspense fallback={
+          <div className="bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded">
+            <p className="text-sm">Loading sign-in options...</p>
+          </div>
+        }>
+          <SignInContent />
+        </Suspense>
       </div>
     </div>
   )

@@ -43,9 +43,5 @@ export {
   type SeedingOptions
 } from './lib/mobile-gaming-seeder'
 
-// Analysis Workflow Component
-export { AnalysisWorkflow } from './components/analysis-workflow'
-export type { AnalysisWorkflowProps, AnalysisState } from './components/analysis-workflow'
-
 // Re-export commonly used functions for convenience
 export { analyzeTerms as analyze } from './lib/analysis-service'

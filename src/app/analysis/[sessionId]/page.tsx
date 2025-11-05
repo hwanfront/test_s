@@ -8,19 +8,15 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { ResultsDashboard } from '@/widgets/results-dashboard'
 import type { AnalysisResults } from '@/features/analysis-display/components/results-viewer'
 
-interface AnalysisResultsPageProps {
-  params: {
-    sessionId: string
-  }
-}
-
-export default function AnalysisResultsPage({ params }: AnalysisResultsPageProps) {
+export default function AnalysisResultsPage() {
   const router = useRouter()
+  const params = useParams()
+  const sessionId = params?.sessionId as string
   const { data: session, status } = useSession()
   const [analysisResult, setAnalysisResult] = useState<AnalysisResults | null>(null)
   const [loading, setLoading] = useState(true)
@@ -30,7 +26,7 @@ export default function AnalysisResultsPage({ params }: AnalysisResultsPageProps
   // Fetch analysis results
   const fetchResults = async () => {
     try {
-      const response = await fetch(`/api/analysis/${params.sessionId}`)
+      const response = await fetch(`/api/analysis/${sessionId}`)
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -69,7 +65,7 @@ export default function AnalysisResultsPage({ params }: AnalysisResultsPageProps
     if (status === 'authenticated') {
       fetchResults()
     }
-  }, [params.sessionId, status])
+  }, [sessionId, status])
 
   // Handle actions
   const handleNewAnalysis = () => {
@@ -154,7 +150,7 @@ export default function AnalysisResultsPage({ params }: AnalysisResultsPageProps
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Analysis Results</h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  Session ID: {params.sessionId}
+                  Session ID: {sessionId}
                 </p>
               </div>
             </div>

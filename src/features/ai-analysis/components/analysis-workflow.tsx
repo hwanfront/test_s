@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useCallback } from 'react'
 import { cn } from '@/shared/lib'
 import { ResultsViewer, AnalysisResults } from '@/features/analysis-display'
