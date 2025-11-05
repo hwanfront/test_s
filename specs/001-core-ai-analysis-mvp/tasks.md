@@ -175,24 +175,26 @@ Feature-Sliced Design (FSD) structure as defined in plan.md:
 
 ### Tests for User Story 2 (Mandatory) ⚠️
 
-- [ ] T072 [P] [US2] Contract test for GET /api/auth/session endpoint in tests/integration/auth-api.test.ts
-- [ ] T073 [P] [US2] Contract test for GET /api/quota endpoint in tests/integration/quota-api.test.ts
-- [ ] T074 [P] [US2] Unit test for OAuth authentication feature in tests/unit/features/auth-oauth.test.ts
-- [ ] T075 [P] [US2] Unit test for quota management entity in tests/unit/entities/quota.test.ts
-- [ ] T076 [P] [US2] Component test for auth widget in tests/unit/widgets/auth-widget.test.tsx
-- [ ] T077 [P] [US2] Integration test for quota enforcement workflow in tests/integration/quota-workflow.test.ts
+- [x] T072 [P] [US2] Contract test for GET /api/auth/session endpoint in tests/integration/auth-api.test.ts
+- [x] T073 [P] [US2] Contract test for GET /api/quota endpoint in tests/integration/quota-api.test.ts
+- [x] T074 [P] [US2] Unit test for OAuth authentication feature in tests/unit/features/auth-oauth.test.ts
+- [x] T075 [P] [US2] Unit test for quota management entity in tests/unit/entities/quota.test.ts
+- [x] T076 [P] [US2] Component test for auth widget in tests/unit/widgets/auth-widget.test.tsx
+T077: Integration test for quota enforcement workflow (TDD)
+     - tests/integration/quota-workflow.test.ts
+     - Status: completed
 
 ### OAuth2 Authentication Feature
 
-- [ ] T078 [P] [US2] Implement Google OAuth2 provider configuration in src/features/auth-oauth/lib/google-provider.ts
-- [ ] T079 [P] [US2] Implement custom Naver OAuth2 provider in src/features/auth-oauth/lib/naver-provider.ts
-- [ ] T080 [P] [US2] Create authentication flow hooks in src/features/auth-oauth/hooks/use-auth.ts
-- [ ] T081 [P] [US2] Create sign-in component in src/features/auth-oauth/components/sign-in.tsx
-- [ ] T082 [P] [US2] Create sign-out component in src/features/auth-oauth/components/sign-out.tsx
+- [x] T078 [P] [US2] Implement Google OAuth2 provider configuration in src/features/auth-oauth/lib/google-provider.ts
+- [x] T079 [P] [US2] Implement custom Naver OAuth2 provider in src/features/auth-oauth/lib/naver-provider.ts
+- [x] T080 [P] [US2] Create authentication flow hooks in src/features/auth-oauth/hooks/use-auth.ts
+- [x] T081 [P] [US2] Create sign-in component in src/features/auth-oauth/components/sign-in.tsx
+- [x] T082 [P] [US2] Create sign-out component in src/features/auth-oauth/components/sign-out.tsx
 
 ### Quota Management Entity
 
-- [ ] T083 [P] [US2] Implement quota calculation utilities in src/entities/quota/lib/quota-calculator.ts
+- [x] T083 [P] [US2] Implement quota calculation utilities in src/entities/quota/lib/quota-calculator.ts
 - [ ] T084 [P] [US2] Implement quota validation service in src/entities/quota/lib/quota-validator.ts
 - [ ] T085 [P] [US2] Create quota reset scheduler in src/entities/quota/lib/quota-scheduler.ts
 - [ ] T086 [P] [US2] Implement quota API client in src/entities/quota/lib/api.ts
