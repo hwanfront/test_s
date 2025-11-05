@@ -43,5 +43,13 @@ const customRender = (
     ...options 
   })
 
+// Export createWrapper function for cases where a wrapper is needed separately
+export const createWrapper = (session?: Session | null) => 
+  ({ children }: { children: ReactNode }) => (
+    <AllTheProviders session={session}>
+      {children}
+    </AllTheProviders>
+  )
+
 export * from '@testing-library/react'
 export { customRender as render }

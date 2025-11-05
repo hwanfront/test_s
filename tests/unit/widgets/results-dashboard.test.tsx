@@ -89,14 +89,30 @@ describe('Results Dashboard Widget', () => {
     sortBy: 'riskScore' as const,
     sortOrder: 'desc' as const,
     showDetails: false,
+    expandedRisks: new Set(),
+    activeTab: 'summary' as const,
+    viewMode: 'cards' as const,
+    showConfidenceScores: true,
+    showPositions: false,
+    searchQuery: '',
     setAnalysisResult: jest.fn(),
     setLoading: jest.fn(),
     setError: jest.fn(),
     setSelectedRiskLevels: jest.fn(),
     setSortBy: jest.fn(),
     setSortOrder: jest.fn(),
+    setSearchQuery: jest.fn(),
     toggleDetails: jest.fn(),
-    reset: jest.fn()
+    toggleRiskExpansion: jest.fn(),
+    setActiveTab: jest.fn(),
+    setViewMode: jest.fn(),
+    toggleConfidenceScores: jest.fn(),
+    togglePositions: jest.fn(),
+    reset: jest.fn(),
+    getFilteredRisks: jest.fn(() => []),
+    getSortedRisks: jest.fn(() => []),
+    getRiskCounts: jest.fn(() => ({ critical: 0, high: 0, medium: 0, low: 0 })),
+    getHighestRiskCategory: jest.fn(() => null)
   };
 
   beforeEach(() => {
@@ -108,7 +124,9 @@ describe('Results Dashboard Widget', () => {
     it('should render dashboard with all sections when results available', () => {
       (useResultsDashboardStore as jest.Mock).mockReturnValue({
         ...defaultStoreState,
-        analysisResult: mockAnalysisResult
+        analysisResult: mockAnalysisResult,
+        getSortedRisks: jest.fn(() => mockAnalysisResult.riskAssessments),
+        getRiskCounts: jest.fn(() => ({ critical: 1, high: 1, medium: 0, low: 0 }))
       });
 
       render(<ResultsDashboard />, { wrapper: createWrapper() });

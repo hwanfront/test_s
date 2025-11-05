@@ -29,15 +29,16 @@ const customJestConfig = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
   ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'json'],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
     '^.+\\.mjs$': 'babel-jest',
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!(jose|@supabase|@next|@babel|next-auth|uuid|@next-auth|zod)/)',
+    '/node_modules/(?!(jose|@supabase|@next|@babel|next-auth|uuid|@next-auth|zod|@auth|@supabase\/auth-helpers)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

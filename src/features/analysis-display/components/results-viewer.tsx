@@ -99,18 +99,18 @@ export const ResultsViewer: React.FC<ResultsViewerProps> = ({
     )
   }
 
-  // No results state
+    // No results state
   if (!analysisResults) {
     return (
       <div
         data-testid="results-viewer-empty"
-        className={cn('bg-white rounded-lg border p-8', className)}
+        className={cn('bg-gray-50 rounded-lg border p-8', className)}
       >
         <div className="text-center space-y-3">
-          <div className="text-gray-400 text-4xl">📄</div>
+          <div className="text-gray-400 text-4xl">�</div>
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No Analysis Available
+            <h3 className="text-lg font-medium text-gray-600 mb-2">
+              No Results Available
             </h3>
             <p className="text-gray-600">
               Submit terms and conditions text to get started with the analysis.
@@ -122,7 +122,7 @@ export const ResultsViewer: React.FC<ResultsViewerProps> = ({
   }
 
   // Expired session state
-  if (analysisResults.session.status === 'expired') {
+  if (analysisResults.session?.status === 'expired') {
     return (
       <div
         data-testid="results-viewer-expired"
@@ -144,10 +144,10 @@ export const ResultsViewer: React.FC<ResultsViewerProps> = ({
   }
 
   // Sort and filter risk assessments
-  const filteredRisks = analysisResults.riskAssessments.filter(risk => {
+  const filteredRisks = analysisResults.riskAssessments?.filter(risk => {
     if (filterBy === 'all') return true
     return risk.riskLevel === filterBy
-  })
+  }) || []
   
   const sortedRisks = [...filteredRisks].sort((a, b) => {
     switch (sortBy) {
@@ -190,31 +190,31 @@ export const ResultsViewer: React.FC<ResultsViewerProps> = ({
               Analysis Results
             </h2>
             <p className="text-gray-600 mt-1">
-              Processed {analysisResults.session.contentLength.toLocaleString()} characters
+              Processed {analysisResults.session?.contentLength?.toLocaleString() || 0} characters
             </p>
           </div>
           <div className="text-right">
-            <div className={cn('text-2xl font-bold', getRiskLevelColor(analysisResults.session.riskLevel))}>
-              {analysisResults.session.riskLevel.charAt(0).toUpperCase() + analysisResults.session.riskLevel.slice(1)} Risk ({analysisResults.session.riskScore}%)
+            <div className={cn('text-2xl font-bold', getRiskLevelColor(analysisResults.session?.riskLevel || 'low'))}>
+              {(analysisResults.session?.riskLevel || 'unknown').charAt(0).toUpperCase() + (analysisResults.session?.riskLevel || 'unknown').slice(1)} Risk ({analysisResults.session?.riskScore || 0}%)
             </div>
             <div className="text-sm text-gray-600">
-              Processed in {formatDuration(analysisResults.session.processingTimeMs)}
+              Processed in {formatDuration(analysisResults.session?.processingTimeMs || 0)}
             </div>
           </div>
         </div>
 
         {/* Overall Confidence */}
         <ConfidenceIndicator
-          score={analysisResults.session.confidenceScore}
+          score={analysisResults.session?.confidenceScore || 0}
           size="lg"
           className="mb-4"
         />
 
         {/* Metadata */}
         <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-          <span>Processing Time: {formatDuration(analysisResults.session.processingTimeMs)}</span>
-          <span>Confidence: {analysisResults.session.confidenceScore}%</span>
-          <span>Expires: {new Date(analysisResults.session.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          <span>Processing Time: {formatDuration(analysisResults.session?.processingTimeMs || 0)}</span>
+          <span>Confidence: {analysisResults.session?.confidenceScore || 0}%</span>
+          <span>Expires: {analysisResults.session?.expiresAt ? new Date(analysisResults.session.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown'}</span>
         </div>
 
         {/* Tabs */}
@@ -349,10 +349,10 @@ export const ResultsViewer: React.FC<ResultsViewerProps> = ({
       <div className="border-t p-4 bg-gray-50 rounded-b-lg">
         <div className="flex items-center justify-between text-sm text-gray-600">
           <div>
-            Analysis completed on {new Date(analysisResults.session.completedAt || analysisResults.session.createdAt).toLocaleDateString()}
+            Analysis completed on {analysisResults.session?.completedAt || analysisResults.session?.createdAt ? new Date(analysisResults.session.completedAt || analysisResults.session.createdAt).toLocaleDateString() : 'Unknown'}
           </div>
           <div>
-            Results expire on {new Date(analysisResults.session.expiresAt).toLocaleDateString()}
+            Results expire on {analysisResults.session?.expiresAt ? new Date(analysisResults.session.expiresAt).toLocaleDateString() : 'Unknown'}
           </div>
         </div>
       </div>

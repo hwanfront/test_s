@@ -139,6 +139,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     )
   }
 
+  // Get computed values after checking for valid result
   const sortedRisks = getSortedRisks()
   const riskCounts = getRiskCounts()
   const riskDistribution = calculateRiskDistribution(riskCounts)
@@ -148,8 +149,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg border">
-          <div className={cn('text-2xl font-bold', getRiskLevelColor(result.session.riskLevel).split(' ')[0])}>
-            {formatRiskLevel(result.session.riskLevel)} Risk ({result.session.riskScore}%)
+          <div className={cn('text-2xl font-bold', result?.session?.riskLevel ? getRiskLevelColor(result.session.riskLevel)?.split(' ')?.[0] || 'text-gray-600' : 'text-gray-600')}>
+            {result?.session?.riskLevel ? formatRiskLevel(result.session.riskLevel) : 'Unknown'} Risk ({result?.session?.riskScore || 0}%)
           </div>
           <div className="text-sm text-gray-600">Overall Risk Level</div>
         </div>

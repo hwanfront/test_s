@@ -1,6 +1,7 @@
 import type { User } from '@/entities/user'
 import type { AnalysisSession, AnalysisResult, AnalysisIssue } from '@/entities/analysis'
 import type { QuotaUsage } from '@/entities/quota'
+import type { AnalysisResults } from '@/features/analysis-display/components/results-viewer'
 
 // Mock User data
 export const mockUser: User = {
@@ -51,7 +52,7 @@ export const mockAnalysisIssues: AnalysisIssue[] = [
   },
 ]
 
-// Mock Analysis Result
+// Mock Analysis Result (database entity)
 export const mockAnalysisResult: AnalysisResult = {
   id: 'test-result-id',
   session_id: 'test-session-id',
@@ -66,6 +67,77 @@ export const mockAnalysisResult: AnalysisResult = {
     confidence_score: 81,
   },
   created_at: '2024-01-01T01:00:00Z',
+}
+
+// Mock Analysis Results (UI component format)
+export const mockAnalysisResults: AnalysisResults = {
+  session: {
+    id: 'test-session-id',
+    contentLength: 5000,
+    status: 'completed',
+    riskScore: 75,
+    riskLevel: 'high',
+    confidenceScore: 81,
+    processingTimeMs: 2500,
+    createdAt: '2024-01-01T00:00:00Z',
+    completedAt: '2024-01-01T01:00:00Z',
+    expiresAt: '2024-01-08T00:00:00Z'
+  },
+  riskAssessments: [
+    {
+      id: 'issue-1',
+      clauseCategory: 'Data Collection',
+      riskLevel: 'high',
+      riskScore: 85,
+      confidenceScore: 85,
+      summary: 'Excessive Data Collection',
+      rationale: 'The terms allow collection of extensive personal data which may violate privacy',
+      suggestedAction: 'Limit data collection to essential data only',
+      startPosition: 100,
+      endPosition: 150
+    },
+    {
+      id: 'issue-2',
+      clauseCategory: 'User Rights',
+      riskLevel: 'medium',
+      riskScore: 65,
+      confidenceScore: 78,
+      summary: 'Limited User Rights',
+      rationale: 'This limits user ability to seek remedies for issues',
+      suggestedAction: 'Provide dispute resolution mechanisms',
+      startPosition: 200,
+      endPosition: 250
+    }
+  ],
+  summary: {
+    totalRisks: 2,
+    riskBreakdown: {
+      critical: 0,
+      high: 1,
+      medium: 1,
+      low: 0
+    },
+    topCategories: [
+      {
+        category: 'Data Collection',
+        count: 1,
+        averageRisk: 85
+      },
+      {
+        category: 'User Rights',
+        count: 1,
+        averageRisk: 65
+      }
+    ],
+    analysisLimitations: [
+      'Analysis based on text patterns and may miss context-specific risks',
+      'Legal interpretation may vary by jurisdiction'
+    ],
+    recommendedActions: [
+      'Review and limit data collection practices',
+      'Provide better dispute resolution options'
+    ]
+  }
 }
 
 // Mock Quota Usage
@@ -126,6 +198,11 @@ export const createMockAnalysisSession = (overrides: Partial<AnalysisSession> = 
 
 export const createMockAnalysisResult = (overrides: Partial<AnalysisResult> = {}): AnalysisResult => ({
   ...mockAnalysisResult,
+  ...overrides,
+})
+
+export const createMockAnalysisResults = (overrides: Partial<AnalysisResults> = {}): AnalysisResults => ({
+  ...mockAnalysisResults,
   ...overrides,
 })
 
