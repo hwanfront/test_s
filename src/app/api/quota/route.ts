@@ -13,13 +13,24 @@ import { QuotaCalculator, QUOTA_CONFIG } from '@/entities/quota/lib/quota-calcul
 /**
  * Quota response interface matching API contracts
  */
-interface QuotaResponse {
-  date: string
-  freeAnalysesUsed: number
-  freeAnalysesLimit: number
-  paidAnalysesUsed: number
-  remainingFree: number
-  nextResetAt: string
+interface QuotaStatusResponse {
+  userId: string
+  dailyLimit: number
+  currentUsage: number
+  remainingAnalyses: number
+  quotaStatus: 'active' | 'exceeded' | 'reset_pending'
+  resetTime: string // ISO date string
+  usagePercentage: number
+  canPerformAnalysis: boolean
+  lastUpdated: string // ISO date string
+}
+
+interface QuotaUsageResponse {
+  success: boolean
+  newUsage: number
+  remainingAnalyses: number
+  quotaExceeded: boolean
+  message?: string
 }
 
 /**
@@ -73,13 +84,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const nextResetAt = calculateNextResetTime()
 
     // Build response according to API contract
-    const quotaResponse: QuotaResponse = {
-      date: today,
-      freeAnalysesUsed: dailyQuotaRecord.analysis_count,
-      freeAnalysesLimit: 3, // Default limit
-      paidAnalysesUsed: 0, // Not implemented yet
-      remainingFree: quotaStatus.remainingAnalyses,
-      nextResetAt: nextResetAt.toISOString()
+    const quotaResponse: QuotaStatusResponse = {
+      userId: userId,
+      dailyLimit: 3, // Default limit
+      currentUsage: dailyQuotaRecord.analysis_count,
+      remainingAnalyses: quotaStatus.remainingAnalyses,
+      quotaStatus: quotaStatus.remainingAnalyses > 0 ? 'active' : 'exceeded',
+      resetTime: nextResetAt.toISOString(),
+      usagePercentage: Math.round((dailyQuotaRecord.analysis_count / 3) * 100),
+      canPerformAnalysis: quotaStatus.remainingAnalyses > 0,
+      lastUpdated: new Date().toISOString()
     }
 
     return NextResponse.json(quotaResponse, {
@@ -256,13 +270,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       QUOTA_CONFIG.DAILY_LIMIT
     )
 
-    const quotaResponse: QuotaResponse = {
-      date: today,
-      freeAnalysesUsed: updatedRecord.analysis_count,
-      freeAnalysesLimit: QUOTA_CONFIG.DAILY_LIMIT,
-      paidAnalysesUsed: 0, // Not implemented yet
-      remainingFree: newStatus.remainingAnalyses,
-      nextResetAt: calculateNextResetTime().toISOString()
+    const quotaResponse: QuotaUsageResponse = {
+      success: true,
+      newUsage: updatedRecord.analysis_count,
+      remainingAnalyses: newStatus.remainingAnalyses,
+      quotaExceeded: newStatus.remainingAnalyses <= 0,
+      message: 'Quota usage updated successfully'
     }
 
     return NextResponse.json(quotaResponse, { status: 200 })

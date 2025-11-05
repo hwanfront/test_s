@@ -246,15 +246,15 @@ T077: Integration test for quota enforcement workflow (TDD)
 ### Enhanced Preprocessing Security
 
 - [x] T106 [P] [US3] Implement enhanced anonymization in src/features/text-preprocessing/lib/enhanced-anonymizer.ts
-- [ ] T107 [P] [US3] Create content deduplication service in src/features/text-preprocessing/lib/deduplication-service.ts
-- [ ] T108 [P] [US3] Implement secure hash comparison in src/features/text-preprocessing/lib/hash-comparison.ts
-- [ ] T109 [P] [US3] Create preprocessing audit logger in src/features/text-preprocessing/lib/audit-logger.ts
+- [x] T107 [P] [US3] Create content deduplication service in src/features/text-preprocessing/lib/deduplication-service.ts
+- [x] T108 [P] [US3] Implement secure hash comparison in src/features/text-preprocessing/lib/hash-comparison.ts
+- [x] T109 [P] [US3] Create preprocessing audit logger in src/features/text-preprocessing/lib/audit-logger.ts
 
 ### Data Retention and Cleanup
 
-- [ ] T110 [P] [US3] Implement analysis session cleanup service in src/shared/lib/cleanup/session-cleanup.ts
-- [ ] T111 [P] [US3] Create data retention policy enforcement in src/shared/lib/cleanup/retention-policy.ts
-- [ ] T112 [P] [US3] Implement automated cleanup scheduler in src/shared/lib/cleanup/cleanup-scheduler.ts
+- [x] T110 [P] [US3] Implement analysis session cleanup service in src/shared/lib/cleanup/session-cleanup.ts
+- [x] T111 [P] [US3] Create data retention policy enforcement in src/shared/lib/cleanup/retention-policy.ts
+- [x] T112 [P] [US3] Implement automated cleanup scheduler in src/shared/lib/cleanup/cleanup-scheduler.ts
 
 ### Privacy Compliance Utilities
 

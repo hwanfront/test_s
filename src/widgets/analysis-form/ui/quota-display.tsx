@@ -9,7 +9,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { cn } from '@/shared/lib'
-import { quotaApi, type QuotaStatusResponse, ClientQuotaValidator } from '@/entities/quota/lib/api'
+import { quotaApi, type QuotaStatusResponse, ClientQuotaValidator } from '@/entities/quota'
 import { useSession } from 'next-auth/react'
 import { Alert, AlertDescription } from '@/shared/ui/alert'
 import { Badge } from '@/shared/ui/badge'
