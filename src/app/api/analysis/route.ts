@@ -13,6 +13,7 @@ import { TextPreprocessor } from '@/features/text-preprocessing'
 import { supabase } from '@/shared/config/database/supabase'
 import { ApiError, withErrorHandler } from '@/shared/lib/api-utils'
 import { validateInput } from '@/shared/lib/validation'
+import { QuotaEnforcer, QUOTA_CONFIG } from '@/entities/quota/lib/quota-calculator'
 
 // Enhanced request validation schema with constitutional compliance
 const AnalysisRequestSchema = z.object({
@@ -86,8 +87,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       throw new ApiError(401, 'Authentication required for analysis submission')
     }
 
-    // Check rate limiting
-    await checkRateLimit(token.userId as string)
+    // Check quota limits before processing
+    await checkQuotaLimits(token.userId as string)
 
     // Parse and validate request body
     const body = await request.json()
@@ -220,25 +221,93 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 })
 
 /**
- * Check rate limiting for the user
+ * Record quota usage after successful analysis
  */
-async function checkRateLimit(userId: string): Promise<void> {
-  const oneHour = new Date(Date.now() - 60 * 60 * 1000)
-  
-  const { count, error } = await supabase
-    .from('analysis_sessions')
-    .select('*', { count: 'exact' })
-    .eq('user_id', userId)
-    .gte('created_at', oneHour.toISOString())
+async function recordQuotaUsage(userId: string, sessionId: string): Promise<void> {
+  try {
+    // Get current quota record
+    const getCurrentRecord = async (userId: string, date: string) => {
+      const { data, error } = await supabase
+        .from('daily_quotas')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('quota_date', date)
+        .single()
 
-  if (error) {
-    console.error('Rate limit check error:', error)
-    // Don't block on rate limit check errors
-    return
+      if (error && error.code !== 'PGRST116') { // Not found error is OK
+        console.error('Get current record error:', error)
+        return null
+      }
+
+      return data
+    }
+
+    // Update quota record
+    const updateQuotaRecord = async (record: any) => {
+      const { error } = await supabase
+        .from('daily_quotas')
+        .upsert(record, { onConflict: 'user_id,quota_date' })
+
+      if (error) {
+        console.error('Update quota record error:', error)
+        throw new Error(`Failed to update quota: ${error.message}`)
+      }
+    }
+
+    // Use QuotaEnforcer to record usage
+    const usageResult = await QuotaEnforcer.recordUsage(
+      userId,
+      updateQuotaRecord,
+      getCurrentRecord
+    )
+
+    if (!usageResult.success) {
+      console.error(`Failed to record quota usage for session ${sessionId}:`, usageResult.error)
+      // Don't fail the analysis for quota recording issues
+    } else {
+      console.log(`Quota usage recorded for user ${userId}, session ${sessionId}`)
+    }
+
+  } catch (error) {
+    console.error(`Quota recording error for user ${userId}, session ${sessionId}:`, error)
+    // Don't fail the analysis for quota recording issues
+  }
+}
+
+/**
+ * Check quota limits using QuotaEnforcer
+ */
+async function checkQuotaLimits(userId: string): Promise<void> {
+  // Get user's quota records
+  const getQuotaRecords = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('daily_quotas')
+      .select('*')
+      .eq('user_id', userId)
+      .order('quota_date', { ascending: false })
+      .limit(30) // Last 30 days for analysis
+
+    if (error) {
+      console.error('Quota records fetch error:', error)
+      return []
+    }
+
+    return data || []
   }
 
-  if (count && count >= 20) { // 20 analyses per hour
-    throw new ApiError(429, 'Rate limit exceeded. Please wait before submitting another analysis.')
+  // Use QuotaEnforcer to check limits
+  const quotaCheck = await QuotaEnforcer.enforceQuota(
+    userId,
+    getQuotaRecords,
+    QUOTA_CONFIG.DAILY_LIMIT
+  )
+
+  if (!quotaCheck.allowed) {
+    throw new ApiError(
+      429,
+      `Daily quota limit exceeded. ${quotaCheck.quotaInfo.currentUsage}/${quotaCheck.quotaInfo.dailyLimit} analyses used. Resets at ${quotaCheck.quotaInfo.resetTime.toISOString()}`,
+      'quota_exceeded'
+    )
   }
 }
 
@@ -368,6 +437,9 @@ async function startAnalysisProcess(
     if (updateError) {
       throw new Error(`Failed to update session: ${updateError.message}`)
     }
+
+    // Record quota usage after successful analysis completion
+    await recordQuotaUsage(userId, sessionId)
 
     // Insert risk assessments
     if (analysisResult.riskAssessments.length > 0) {
