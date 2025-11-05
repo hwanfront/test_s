@@ -291,10 +291,10 @@ T077: Integration test for quota enforcement workflow (TDD)
 
 ### Performance Optimization
 
-- [ ] T126 [P] Implement analysis result caching in src/shared/lib/cache/analysis-cache.ts
-- [ ] T127 [P] Add loading states and skeletons to all components
-- [ ] T128 [P] Optimize bundle size with dynamic imports
-- [ ] T129 [P] Implement image optimization and CDN setup
+- [x] T126 [P] Implement analysis result caching in src/shared/lib/cache/analysis-cache.ts
+- [x] T127 [P] Add loading states and skeletons to all components
+- [x] T128 [P] Optimize bundle size with dynamic imports
+- [x] T129 [P] Implement image optimization and CDN setup
 
 ### Security Hardening
 
