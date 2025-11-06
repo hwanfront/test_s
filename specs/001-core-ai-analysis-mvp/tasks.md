@@ -298,17 +298,17 @@ T077: Integration test for quota enforcement workflow (TDD)
 
 ### Security Hardening
 
-- [ ] T130 [P] Add CSRF protection to API routes
-- [ ] T131 [P] Implement request rate limiting across all endpoints
-- [ ] T132 [P] Add security headers configuration in next.config.js
-- [ ] T133 [P] Create security audit utilities in src/shared/lib/security/audit.ts
+- [x] T130 [P] Add CSRF protection to API routes
+- [x] T131 [P] Implement request rate limiting across all endpoints
+- [x] T132 [P] Add security headers configuration in next.config.js
+- [x] T133 [P] Create security audit utilities in src/shared/lib/security/audit.ts
 
 ### Testing and Quality Assurance
 
-- [ ] T134 [P] Add end-to-end tests with Playwright in tests/e2e/
-- [ ] T135 [P] Implement test coverage reporting
-- [ ] T136 [P] Add performance testing for analysis pipeline
-- [ ] T137 [P] Create accessibility tests for all UI components
+- [x] T134 [P] Add end-to-end tests with Playwright in tests/e2e/
+- [x] T135 [P] Implement test coverage reporting
+- [x] T136 [P] Add performance testing for analysis pipeline
+- [x] T137 [P] Create accessibility tests for all UI components
 
 ### Deployment and Monitoring
 
