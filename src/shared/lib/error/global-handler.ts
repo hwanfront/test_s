@@ -75,13 +75,19 @@ class GlobalErrorHandler {
 
   constructor(config: Partial<ErrorHandlerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
-    this.setupGlobalHandlers()
+    // Only setup handlers in browser environment
+    if (typeof window !== 'undefined') {
+      this.setupGlobalHandlers()
+    }
   }
 
   /**
-   * Set up global error listeners
+   * Set up global error listeners (client-side only)
    */
   private setupGlobalHandlers(): void {
+    // Guard: Only run in browser
+    if (typeof window === 'undefined') return
+
     // Handle JavaScript errors
     window.addEventListener('error', (event) => {
       const error = event.error || new Error(event.message)

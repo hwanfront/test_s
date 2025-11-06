@@ -21,18 +21,25 @@ const calculateRemainingQuota = (
   currentUsage: number, 
   dailyLimit: number
 ) => {
-  return Math.max(0, dailyLimit - currentUsage)
+  const safeUsage = Number.isFinite(currentUsage) && currentUsage > 0 ? currentUsage : 0
+  const safeLimit = Number.isFinite(dailyLimit) && dailyLimit > 0 ? dailyLimit : 0
+  return Math.max(0, safeLimit - safeUsage)
 }
 
 const validateQuotaUsage = (
   currentUsage: number,
   dailyLimit: number
 ) => {
+  const safeUsage = Number.isFinite(currentUsage) && currentUsage > 0 ? currentUsage : 0
+  const safeLimit = Number.isFinite(dailyLimit) && dailyLimit > 0 ? dailyLimit : 0
+  const usagePct = safeLimit === 0 ? 0 : Math.min(100, Math.round((safeUsage / safeLimit) * 10000) / 100)
+
   return {
-    isValid: currentUsage <= dailyLimit,
-    isExceeded: currentUsage >= dailyLimit,
-    remainingAnalyses: calculateRemainingQuota(currentUsage, dailyLimit),
-    usagePercentage: Math.min(100, (currentUsage / dailyLimit) * 100)
+    // Valid only when strictly under the limit (limit reached -> not valid)
+    isValid: safeUsage < safeLimit,
+    isExceeded: safeUsage >= safeLimit,
+    remainingAnalyses: calculateRemainingQuota(safeUsage, safeLimit),
+    usagePercentage: usagePct
   }
 }
 

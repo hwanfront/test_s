@@ -203,10 +203,10 @@ describe('AI Analysis Module', () => {
       matcher = new PatternMatcher()
     })
 
-    it('should identify account termination patterns', () => {
+    it('should identify account termination patterns', async () => {
       const content = 'We reserve the right to terminate your account at any time without notice.'
       
-      const matches = matcher.findPatterns(content)
+      const matches = await matcher.findPatterns(content)
       
       expect(matches).toContainEqual(
         expect.objectContaining({
@@ -218,10 +218,10 @@ describe('AI Analysis Module', () => {
       )
     })
 
-    it('should identify virtual currency patterns', () => {
+    it('should identify virtual currency patterns', async () => {
       const content = 'Virtual currency has no real-world value and may be forfeited at our discretion.'
       
-      const matches = matcher.findPatterns(content)
+      const matches = await matcher.findPatterns(content)
       
       expect(matches).toContainEqual(
         expect.objectContaining({
@@ -231,10 +231,10 @@ describe('AI Analysis Module', () => {
       )
     })
 
-    it('should identify data collection patterns', () => {
+    it('should identify data collection patterns', async () => {
       const content = 'We collect all your personal information and may share it with third parties.'
       
-      const matches = matcher.findPatterns(content)
+      const matches = await matcher.findPatterns(content)
       
       expect(matches).toContainEqual(
         expect.objectContaining({
@@ -244,18 +244,18 @@ describe('AI Analysis Module', () => {
       )
     })
 
-    it('should handle content with no patterns', () => {
+    it('should handle content with no patterns', async () => {
       const content = 'This is completely innocent content with no problematic clauses.'
       
-      const matches = matcher.findPatterns(content)
+      const matches = await matcher.findPatterns(content)
       
       expect(matches).toHaveLength(0)
     })
 
-    it('should score pattern confidence accurately', () => {
+    it('should score pattern confidence accurately', async () => {
       const content = 'We reserve the right to terminate accounts without notice or reason.'
       
-      const matches = matcher.findPatterns(content)
+      const matches = await matcher.findPatterns(content)
       const terminationMatch = matches.find(m => m.category === 'account-termination')
       
       expect(terminationMatch?.confidence).toBeGreaterThan(80)

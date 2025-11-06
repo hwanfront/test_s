@@ -58,6 +58,12 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
   const [showFormatSuggestion, setShowFormatSuggestion] = useState(false)
   const [submissionError, setSubmissionError] = useState<string | null>(null)
   
+  // T146 FIX: Store validation state locally to avoid calling validateContent during render
+  const [validationState, setValidationState] = useState<{ isValid: boolean; errors: Record<string, string> }>({ 
+    isValid: false, 
+    errors: {} 
+  })
+  
   // Quota awareness
   const { canAnalyze, quotaStatus } = useQuotaStatus()
 
@@ -71,6 +77,16 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
     }
   }, [enableAutoSave, content, loadDraft])
 
+  // T146 FIX: Validate content in useEffect, not during render
+  useEffect(() => {
+    const result = validateContent()
+    setValidationState(result)
+    // Apply errors to store only in effect, not during render
+    if (Object.keys(result.errors).length > 0) {
+      setErrors(result.errors)
+    }
+  }, [content, validateContent, setErrors])
+
   // Check for formatting issues
   useEffect(() => {
     const hasExcessiveWhitespace = /\s{4,}/.test(content) || /\n{3,}/.test(content)
@@ -80,7 +96,8 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
 
   const characterInfo = getCharacterCountInfo(content.length)
   const estimatedTime = estimateAnalysisTime(content.length)
-  const validation = validateContent() || { isValid: false, errors: {} }
+  // T146 FIX: Use local validationState instead of calling validateContent during render
+  const validation = validationState
 
   const canSubmit = validation.isValid && !isSubmitting && !disabled && canAnalyze
 
@@ -111,8 +128,12 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({
       return
     }
 
+    // T146 FIX: Validate and apply errors before submission
     const validation = validateContent()
-    if (!validation.isValid) return
+    if (!validation.isValid) {
+      setErrors(validation.errors)
+      return
+    }
 
     try {
       setSubmissionError(null)

@@ -110,7 +110,7 @@ export const MOBILE_GAMING_PATTERNS: ClausePattern[] = [
   },
   {
     id: 'mg_005',
-    category: 'account',
+    category: 'account-termination',
     name: 'Account Termination',
     description: 'Broad company rights to terminate accounts without clear reasons',
     riskLevel: 'medium',
@@ -165,7 +165,7 @@ export const MOBILE_GAMING_PATTERNS: ClausePattern[] = [
   },
   {
     id: 'mg_010',
-    category: 'virtual_goods',
+    category: 'virtual-currency',
     name: 'Virtual Currency Restrictions',
     description: 'Terms that devalue or restrict virtual currency and items',
     riskLevel: 'high',

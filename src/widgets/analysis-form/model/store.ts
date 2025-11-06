@@ -103,6 +103,9 @@ export const useAnalysisFormStore = create<AnalysisFormState>()(
         set({ errors })
       },
 
+      // T146 FIX: Make validateContent pure - it returns validation result without mutating store.
+      // This prevents "Cannot update a component while rendering" error.
+      // The caller (typically event handlers or effects) should apply errors via setErrors.
       validateContent: (): ValidationResult => {
         const { content } = get()
         const errors: Record<string, string> = {}
@@ -110,7 +113,6 @@ export const useAnalysisFormStore = create<AnalysisFormState>()(
         // Required field validation
         if (!content.trim()) {
           errors.content = 'Content is required'
-          set({ errors })
           return { isValid: false, errors }
         }
 
@@ -132,7 +134,7 @@ export const useAnalysisFormStore = create<AnalysisFormState>()(
         }
 
         const isValid = Object.keys(errors).length === 0
-        set({ errors })
+        // T146: Do NOT call set({ errors }) here - let the caller decide when to apply
         return { isValid, errors }
       },
 

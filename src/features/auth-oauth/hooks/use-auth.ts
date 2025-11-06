@@ -137,15 +137,29 @@ export function useAuthRedirect(options: {
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
+  // Deconstruct options to avoid object identity causing the effect to re-run
+  // on every render. Callers may pass inline object literals which would
+  // otherwise make `options` a new reference each render and trigger the
+  // redirect effect repeatedly, resulting in "Maximum update depth exceeded".
+  const { redirectTo, redirectIfAuthenticated, requireAuth } = options || {}
+
   useEffect(() => {
     if (isLoading) return
 
-    if (options.requireAuth && !isAuthenticated && options.redirectTo) {
-      router.push(options.redirectTo)
-    } else if (isAuthenticated && options.redirectIfAuthenticated) {
-      router.push(options.redirectIfAuthenticated)
+    if (requireAuth && !isAuthenticated && redirectTo) {
+      // Avoid pushing if we're already on the same path to prevent redirect
+      // loops when callers pass the same redirect target repeatedly.
+      if (typeof window !== 'undefined' && window.location.pathname !== redirectTo) {
+        router.push(redirectTo)
+      }
+    } else if (isAuthenticated && redirectIfAuthenticated) {
+      if (typeof window !== 'undefined' && window.location.pathname !== redirectIfAuthenticated) {
+        router.push(redirectIfAuthenticated)
+      }
     }
-  }, [isAuthenticated, isLoading, router, options])
+    // Intentionally depend on primitives only to avoid re-running due to
+    // new object identity of `options` passed inline by callers.
+  }, [isAuthenticated, isLoading, router, redirectTo, redirectIfAuthenticated, requireAuth])
 
   return { isAuthenticated, isLoading }
 }
@@ -160,7 +174,10 @@ export function useAuthGuard(requireAuth: boolean = true) {
 
   useEffect(() => {
     if (!isLoading && requireAuth && !isAuthenticated) {
-      router.push(`/signin?callbackUrl=${encodeURIComponent(router.asPath)}`)
+      const target = `/signin?callbackUrl=${encodeURIComponent(router.asPath)}`
+      if (typeof window !== 'undefined' && window.location.pathname !== '/signin') {
+        router.push(target)
+      }
     }
   }, [isAuthenticated, isLoading, requireAuth, router])
 

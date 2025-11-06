@@ -53,7 +53,11 @@ export function AuthGuard({
   if (requireAuth && status === 'unauthenticated') {
     // For client-side redirect, use router
     if (typeof window !== 'undefined') {
-      router.push(redirectTo)
+      // T146 FIX: Avoid redirecting if we're already on the same route which can cause
+      // repeated navigation and render loops in certain auth flows.
+      if (window.location.pathname !== redirectTo) {
+        router.push(redirectTo)
+      }
       return null
     }
     

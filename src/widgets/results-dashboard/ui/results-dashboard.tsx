@@ -152,8 +152,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
 
         <div className="bg-white p-4 rounded-lg border">
-          <div className="text-2xl font-bold text-blue-600">
-            {result?.summary?.totalRisks ?? 0} risks found
+          <div className="text-2xl font-bold text-blue-600" aria-label={`${result?.summary?.totalRisks ?? 0} risks found`}>
+            {result?.summary?.totalRisks ?? 0}
           </div>
           <div className="text-sm text-gray-600">Total Issues</div>
         </div>

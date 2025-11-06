@@ -1,3 +1,4 @@
+'use client'
 /**
  * T127 [P] Add loading states and skeletons to all components
  * 

@@ -28,6 +28,8 @@ const customJestConfig = {
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
+    // Playwright/e2e tests are executed by Playwright Test, not Jest
+    '<rootDir>/tests/e2e/',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'json'],
   transform: {

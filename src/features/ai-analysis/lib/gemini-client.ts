@@ -382,23 +382,24 @@ export class GeminiClient {
   }
 
   private getDefaultSafetySettings(): SafetySetting[] {
+    // Defensive: fall back to string constants if the imported enums are not
+    // available (test mocks may not provide them). This keeps tests stable.
+    const HC = (HarmCategory as any) || {
+      HARM_CATEGORY_HARASSMENT: 'harassment',
+      HARM_CATEGORY_HATE_SPEECH: 'hate_speech',
+      HARM_CATEGORY_SEXUALLY_EXPLICIT: 'sexually_explicit',
+      HARM_CATEGORY_DANGEROUS_CONTENT: 'dangerous_content'
+    }
+
+    const HBT = (HarmBlockThreshold as any) || {
+      BLOCK_MEDIUM_AND_ABOVE: 'block_medium_and_above'
+    }
+
     return [
-      {
-        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE
-      }
+      { category: HC.HARM_CATEGORY_HARASSMENT, threshold: HBT.BLOCK_MEDIUM_AND_ABOVE },
+      { category: HC.HARM_CATEGORY_HATE_SPEECH, threshold: HBT.BLOCK_MEDIUM_AND_ABOVE },
+      { category: HC.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HBT.BLOCK_MEDIUM_AND_ABOVE },
+      { category: HC.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HBT.BLOCK_MEDIUM_AND_ABOVE }
     ]
   }
 

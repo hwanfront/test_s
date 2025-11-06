@@ -78,8 +78,8 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
         </h2>
         <p className={cn('text-3xl font-bold', getTotalRiskColor())}>
           {safeSummary.totalRisks === 0
-            ? 'No Significant Risks Found'
-            : `${safeSummary.totalRisks} issue${safeSummary.totalRisks !== 1 ? 's' : ''} found`
+            ? 'No significant risks found'
+            : `${safeSummary.totalRisks} risks found`
           }
         </p>
         {safeSummary.totalRisks === 0 && (

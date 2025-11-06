@@ -324,15 +324,27 @@ T077: Integration test for quota enforcement workflow (TDD)
 - [x] T144 Create troubleshooting guide for common issues
 - [x] T145 Validate constitutional compliance checklist
 
----
-
-## Bug Fixes (T146+) - Critical Production Blocks ⚠️
+### Bug Fixes (T146+) - Critical Production Blocks ⚠️
 
 **Purpose**: Resolve critical runtime errors identified during final QA to achieve actual Production Ready status.
 
-- [ ] T146 [fix] [US2] **Critical Bug Fix:** Resolve `Maximum update depth exceeded` infinite loop error after OAuth2 login to `/analysis`.
-- [ ] T147 [fix] [Shared] **Structural Bug Fix:** Resolve Next.js Server/Client Component props violation (e.g., passing `onClick`) causing "Something Went Wrong" on static pages (e.g., `/about`).
+- [x] T146 [fix] [US2] **Critical Bug Fix:** Resolve `Maximum update depth exceeded` infinite loop error after OAuth2 login to `/analysis`.
+  - **Root Cause**: `validateContent()` in store.ts was calling `set({ errors })` during render, causing "Cannot update a component while rendering" error
+  - **Solution**: Made `validateContent()` pure (returns validation result without mutating store); moved error application to useEffect in AnalysisForm component
+  - **Files Changed**: 
+    - `src/widgets/analysis-form/model/store.ts`: validateContent now returns errors without calling set()
+    - `src/widgets/analysis-form/ui/analysis-form.tsx`: Added useEffect to apply validation errors; uses local validationState
+    - `src/shared/lib/middleware/auth-guard.tsx`: Added T146 comment to existing redirect guard
+  - **Tests**: Added `tests/unit/widgets/analysis-form-render-safety.test.tsx` with 5 passing tests
+- [~] T147 [fix] [Shared] **Structural Bug Fix:** Resolve Next.js Server/Client Component props violation (e.g., passing `onClick`) causing "Something Went Wrong" on static pages (e.g., `/about`).
+  - **Root Cause**: shadcn/ui components missing 'use client' directive, causing Server Component boundary violations
+  - **Partial Solution Applied**: 
+    - Added 'use client' to: button.tsx, alert.tsx, dropdown-menu.tsx, avatar.tsx, card.tsx, badge.tsx, skeleton.tsx
+    - Fixed `global-handler.ts` to only run window listeners in browser (typeof window !== 'undefined' guard)
+  - **Status**: Partially resolved - needs verification in dev server
 - [ ] T148 [feat] [Shared] **UI/UX Polishing:** Implement missing core UI components (e.g., dedicated **Logout button** and necessary links/buttons for **Main Page functionality**).
+
+---
 
 ## Dependencies & Execution Order
 

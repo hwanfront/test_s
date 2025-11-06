@@ -155,7 +155,7 @@ describe('Analysis Display Components', () => {
       render(<RiskCard assessment={lowRiskAssessment} />)
 
       expect(screen.getByText('Low Risk')).toBeInTheDocument()
-      expect(screen.getByTestId('risk-card')).toHaveClass('risk-low')
+  expect(screen.getByTestId('risk-assessment-card')).toHaveClass('risk-low')
     })
   })
 
@@ -314,8 +314,8 @@ describe('Analysis Display Components', () => {
       const criticalFilter = screen.getByText('Critical Only')
       fireEvent.click(criticalFilter)
 
-      // Should only show critical risks
-      expect(screen.getAllByTestId('risk-card')).toHaveLength(1)
+  // Should only show critical risks
+  expect(screen.getAllByTestId('risk-assessment-card')).toHaveLength(1)
     })
   })
 })

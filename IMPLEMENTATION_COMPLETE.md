@@ -2,7 +2,73 @@
 
 ## 🎉 Implementation Successfully Completed!
 
-The **Core AI Analysis MVP** has been successfully implemented following the comprehensive **speckit methodology**. All 145 planned tasks across 6 phases have been completed, resulting in a production-ready AI-powered terms and conditions analysis platform.
+The **Core AI Analysis MVP** has been successfully implemented following the comprehensive **speckit methodology**. All primary tasks across 6 phases have been completed, with critical bug fixes applied to ensure production stability.
+
+## 🔧 Recent Critical Bug Fixes
+
+### **T146: Maximum Update Depth Exceeded Error - RESOLVED** ✅
+**Issue**: Fatal runtime error occurring after OAuth2 login when navigating to `/analysis` page, causing infinite re-render loop with "Cannot update a component while rendering" error.
+
+**Root Cause**:
+- `validateContent()` in `src/widgets/analysis-form/model/store.ts` was calling `set({ errors })` during component render phase
+- React's strict rule prohibits state updates during synchronous render, causing the infinite update loop
+
+**Solution Applied**:
+1. **Made validateContent() pure** (store.ts):
+   - Function now returns `ValidationResult` without mutating store state
+   - Removed `set({ errors })` call from validation logic
+   - Annotated with T146 fix comments
+
+2. **Moved validation application to useEffect** (analysis-form.tsx):
+   - Created local `validationState` state to cache validation results
+   - Added useEffect hook to run validation and apply errors via `setErrors()`
+   - Updated `handleSubmit` to validate and apply errors before submission
+   - Validation now occurs in effects/handlers, not during render
+
+3. **Enhanced redirect guards** (auth-guard.tsx):
+   - Added T146 annotation to existing pathname check
+   - Prevents redundant navigation that could trigger render loops
+
+**Test Coverage**:
+- Created comprehensive test suite: `tests/unit/widgets/analysis-form-render-safety.test.tsx`
+- All 5 new tests passing:
+  - ✓ No setState during render phase
+  - ✓ validateContent callable without side effects
+  - ✓ Validation errors handled in event handlers
+  - ✓ No infinite re-renders on content change
+  - ✓ Errors applied via setErrors in effects only
+- All 29 existing analysis-form tests continue to pass (no regressions)
+
+**Verification Status**: ✅ **RESOLVED**
+- Tests confirm no setState during render
+- Component safely handles validation and state updates
+- Ready for end-to-end browser testing
+
+### **T147: Server/Client Component Boundary Violations - IN PROGRESS** 🔧
+**Issue**: "Event handlers cannot be passed to Client Component props" error causing 500 errors on various pages.
+
+**Root Causes Identified**:
+1. shadcn/ui components (button, alert, dropdown-menu, etc.) missing 'use client' directive
+2. `global-handler.ts` attempting to access `window` during SSR initialization
+
+**Solutions Applied**:
+1. **Added 'use client' to interactive UI components**:
+   - `src/shared/ui/button.tsx`
+   - `src/shared/ui/alert.tsx`
+   - `src/shared/ui/dropdown-menu.tsx`
+   - `src/shared/ui/avatar.tsx`
+   - `src/shared/ui/card.tsx`
+   - `src/shared/ui/badge.tsx`
+   - `src/shared/ui/skeleton.tsx`
+
+2. **Fixed global-handler.ts SSR issue**:
+   - Added `typeof window !== 'undefined'` guard in constructor
+   - Wrapped `setupGlobalHandlers()` to only run in browser
+   - Prevents "window is not defined" during server-side rendering
+
+**Verification Status**: 🔄 **PARTIAL** - Awaiting dev server restart and browser testing
+
+---
 
 ## 📊 Final Implementation Status
 

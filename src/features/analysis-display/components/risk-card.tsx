@@ -69,7 +69,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({
     <div
       // Primary test id expected by the unit tests
       data-testid="risk-assessment-card"
-      // Keep a legacy attribute so other consumers can still locate the element
+      // Provide the legacy attribute so older debugging helpers can still locate the element
       data-testid-legacy="risk-card"
       tabIndex={0}
       onClick={() => onHighlight && onHighlight({ startPosition: assessment.startPosition, endPosition: assessment.endPosition, riskLevel: assessment.riskLevel })}
@@ -124,7 +124,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({
         onClick={() => setIsExpanded(!isExpanded)}
         className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
       >
-        {isExpanded ? 'Hide Details' : 'View Details'}
+        {isExpanded ? 'Hide Details' : 'Show Details'}
       </button>
 
       {/* Expanded Details */}
