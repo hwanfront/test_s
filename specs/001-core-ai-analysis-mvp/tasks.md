@@ -336,13 +336,32 @@ T077: Integration test for quota enforcement workflow (TDD)
     - `src/widgets/analysis-form/ui/analysis-form.tsx`: Added useEffect to apply validation errors; uses local validationState
     - `src/shared/lib/middleware/auth-guard.tsx`: Added T146 comment to existing redirect guard
   - **Tests**: Added `tests/unit/widgets/analysis-form-render-safety.test.tsx` with 5 passing tests
-- [~] T147 [fix] [Shared] **Structural Bug Fix:** Resolve Next.js Server/Client Component props violation (e.g., passing `onClick`) causing "Something Went Wrong" on static pages (e.g., `/about`).
-  - **Root Cause**: shadcn/ui components missing 'use client' directive, causing Server Component boundary violations
-  - **Partial Solution Applied**: 
+- [x] T147 [fix] [Shared] **Structural Bug Fix:** Resolve Next.js Server/Client Component props violation (e.g., passing `onClick`) causing "Something Went Wrong" on static pages (e.g., `/about`).
+  - **Root Causes**: 
+    1. shadcn/ui components missing 'use client' directive
+    2. `global-handler.ts` accessing `window` during SSR
+    3. `next.config.js` using deprecated `experimental.turbo` config
+  - **Solutions Applied**: 
     - Added 'use client' to: button.tsx, alert.tsx, dropdown-menu.tsx, avatar.tsx, card.tsx, badge.tsx, skeleton.tsx
-    - Fixed `global-handler.ts` to only run window listeners in browser (typeof window !== 'undefined' guard)
-  - **Status**: Partially resolved - needs verification in dev server
-- [ ] T148 [feat] [Shared] **UI/UX Polishing:** Implement missing core UI components (e.g., dedicated **Logout button** and necessary links/buttons for **Main Page functionality**).
+    - Fixed `global-handler.ts` with `typeof window !== 'undefined'` guard in constructor
+    - Removed deprecated `experimental.turbo` config from next.config.js
+    - Fixed `Permissions-Policy` header (removed unsupported `ambient-light-sensor`)
+  - **Status**: ✅ Resolved - Server config updated, dev server running
+- [x] T148 [feat] [Shared] **UI/UX Polishing:** Implement missing core UI components (e.g., dedicated **Logout button** and necessary links/buttons for **Main Page functionality**).
+  - **Status**: ✅ Resolved
+  - **Solution**: 
+    - NavigationHeader (already implemented) added to root layout.tsx
+    - Provides global navigation with auth-aware display:
+      - Desktop: Logo, About link, Auth state (user info or sign-in prompt), Mobile menu button
+      - Mobile: Drawer with same functionality
+    - LogoutButton component already exists with proper async signOut() integration
+    - All pages now have consistent navigation with login/logout functionality
+  - **Files Modified**:
+    - src/app/layout.tsx - Added NavigationHeader import and rendering
+  - **Existing Components Used**:
+    - src/shared/ui/navigation-header.tsx (180 lines, full featured)
+    - src/shared/ui/logout-button.tsx (104 lines, with loading state)
+  - **Validation**: NavigationHeader renders on all pages, LogoutButton integrated in nav menu
 
 ---
 

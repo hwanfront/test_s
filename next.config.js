@@ -28,15 +28,11 @@ const nextConfig = {
       'date-fns',
       'lodash'
     ],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
   },
+
+  // Turbopack configuration (Next.js 16+ default bundler)
+  // Empty config to acknowledge we're using custom webpack for specific features
+  turbopack: {},
 
   // Production optimizations
   compiler: {
@@ -145,7 +141,7 @@ const nextConfig = {
           // Disable dangerous browser features
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=(), ambient-light-sensor=()'
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), magnetometer=(), gyroscope=(), accelerometer=()'
           },
           // Content Security Policy
           {

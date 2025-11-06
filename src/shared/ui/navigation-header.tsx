@@ -65,7 +65,7 @@ export function NavigationHeader() {
                 </div>
               ) : (
                 <a
-                  href="/api/auth/signin"
+                  href="/signin"
                   className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
                   Sign In
@@ -166,7 +166,7 @@ export function NavigationHeader() {
                 ) : (
                   <div className="px-3">
                     <a
-                      href="/api/auth/signin"
+                      href="/signin"
                       className="block w-full text-center bg-blue-600 text-white px-4 py-2 rounded-md text-base font-medium hover:bg-blue-700 transition-colors"
                     >
                       Sign In

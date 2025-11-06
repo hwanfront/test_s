@@ -44,12 +44,13 @@ The **Core AI Analysis MVP** has been successfully implemented following the com
 - Component safely handles validation and state updates
 - Ready for end-to-end browser testing
 
-### **T147: Server/Client Component Boundary Violations - IN PROGRESS** 🔧
+### **T147: Server/Client Component Boundary Violations - RESOLVED** ✅
 **Issue**: "Event handlers cannot be passed to Client Component props" error causing 500 errors on various pages.
 
 **Root Causes Identified**:
 1. shadcn/ui components (button, alert, dropdown-menu, etc.) missing 'use client' directive
 2. `global-handler.ts` attempting to access `window` during SSR initialization
+3. Next.js 16 Turbopack configuration conflicts with custom webpack config
 
 **Solutions Applied**:
 1. **Added 'use client' to interactive UI components**:
@@ -66,7 +67,42 @@ The **Core AI Analysis MVP** has been successfully implemented following the com
    - Wrapped `setupGlobalHandlers()` to only run in browser
    - Prevents "window is not defined" during server-side rendering
 
-**Verification Status**: 🔄 **PARTIAL** - Awaiting dev server restart and browser testing
+3. **Updated next.config.js**:
+   - Added `turbopack: {}` to acknowledge Turbopack usage alongside webpack
+   - Removed deprecated `experimental.turbo` configuration
+   - Cleaned Permissions-Policy header (removed unsupported ambient-light-sensor)
+
+**Verification Status**: ✅ **RESOLVED**
+- Dev server starts successfully
+- All 'use client' directives added to interactive components
+- SSR window guards in place
+- Next.js 16 Turbopack configuration complete
+
+### **T148: UI/UX Polishing - COMPLETED** ✅
+**Issue**: Missing core UI components including dedicated logout button and main page navigation functionality.
+
+**Solution Applied**:
+1. **Added NavigationHeader to root layout**:
+   - Imported and rendered NavigationHeader in `src/app/layout.tsx`
+   - Provides consistent navigation across all pages
+   - Auth-aware display (user info when logged in, sign-in prompt when not)
+   - Mobile-responsive with drawer menu
+
+2. **Leveraged existing components**:
+   - `src/shared/ui/navigation-header.tsx` (180 lines, fully featured)
+   - `src/shared/ui/logout-button.tsx` (104 lines, with loading state)
+   - LogoutButton already integrated in NavigationHeader
+
+**Features**:
+- Desktop navigation: Logo, About link, Auth state display, Mobile menu button
+- Mobile navigation: Full-screen drawer with same functionality
+- LogoutButton with async signOut() integration and loading state
+- Proper error handling and user feedback
+
+**Verification Status**: ✅ **COMPLETED**
+- NavigationHeader renders on all pages
+- Logout functionality integrated and accessible
+- Responsive design works on desktop and mobile
 
 ---
 
