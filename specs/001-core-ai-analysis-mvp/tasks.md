@@ -326,6 +326,14 @@ T077: Integration test for quota enforcement workflow (TDD)
 
 ---
 
+## Bug Fixes (T146+) - Critical Production Blocks ⚠️
+
+**Purpose**: Resolve critical runtime errors identified during final QA to achieve actual Production Ready status.
+
+- [ ] T146 [fix] [US2] **Critical Bug Fix:** Resolve `Maximum update depth exceeded` infinite loop error after OAuth2 login to `/analysis`.
+- [ ] T147 [fix] [Shared] **Structural Bug Fix:** Resolve Next.js Server/Client Component props violation (e.g., passing `onClick`) causing "Something Went Wrong" on static pages (e.g., `/about`).
+- [ ] T148 [feat] [Shared] **UI/UX Polishing:** Implement missing core UI components (e.g., dedicated **Logout button** and necessary links/buttons for **Main Page functionality**).
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

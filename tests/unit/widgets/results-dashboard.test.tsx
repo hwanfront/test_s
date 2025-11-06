@@ -110,8 +110,16 @@ describe('Results Dashboard Widget', () => {
     togglePositions: jest.fn(),
     reset: jest.fn(),
     getFilteredRisks: jest.fn(() => []),
-    getSortedRisks: jest.fn(() => []),
-    getRiskCounts: jest.fn(() => ({ critical: 0, high: 0, medium: 0, low: 0 })),
+    // Default helpers derive from the current analysisResult when present so
+    // tests that provide `analysisResult` without overriding these helpers will
+    // still see the expected behavior.
+    getSortedRisks: jest.fn(() => defaultStoreState.analysisResult ? defaultStoreState.analysisResult.riskAssessments : []),
+    getRiskCounts: jest.fn(() => defaultStoreState.analysisResult ? ({
+      critical: defaultStoreState.analysisResult.summary.riskBreakdown.critical,
+      high: defaultStoreState.analysisResult.summary.riskBreakdown.high,
+      medium: defaultStoreState.analysisResult.summary.riskBreakdown.medium,
+      low: defaultStoreState.analysisResult.summary.riskBreakdown.low
+    }) : ({ critical: 0, high: 0, medium: 0, low: 0 })),
     getHighestRiskCategory: jest.fn(() => null)
   };
 

@@ -20,6 +20,7 @@ export interface RiskAssessment {
 export interface RiskCardProps {
   assessment: RiskAssessment
   className?: string
+  onHighlight?: (payload: { startPosition: number; endPosition: number; riskLevel: string }) => void
 }
 
 /**
@@ -28,7 +29,8 @@ export interface RiskCardProps {
  */
 export const RiskCard: React.FC<RiskCardProps> = ({
   assessment,
-  className
+  className,
+  onHighlight
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -65,7 +67,12 @@ export const RiskCard: React.FC<RiskCardProps> = ({
 
   return (
     <div
-      data-testid="risk-card"
+      // Primary test id expected by the unit tests
+      data-testid="risk-assessment-card"
+      // Keep a legacy attribute so other consumers can still locate the element
+      data-testid-legacy="risk-card"
+      tabIndex={0}
+      onClick={() => onHighlight && onHighlight({ startPosition: assessment.startPosition, endPosition: assessment.endPosition, riskLevel: assessment.riskLevel })}
       className={cn(
         'border rounded-lg p-4 transition-all duration-200 hover:shadow-md',
         `risk-${assessment.riskLevel}`,
@@ -108,6 +115,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({
           >
             {assessment.confidenceScore}%
           </span>
+          <span className="text-sm text-gray-600 ml-2" data-testid="confidence-text">{assessment.confidenceScore}% confident</span>
         </div>
       </div>
 
@@ -116,7 +124,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({
         onClick={() => setIsExpanded(!isExpanded)}
         className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
       >
-        {isExpanded ? 'Hide Details' : 'Show Details'}
+        {isExpanded ? 'Hide Details' : 'View Details'}
       </button>
 
       {/* Expanded Details */}
