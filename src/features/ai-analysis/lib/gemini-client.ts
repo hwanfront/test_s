@@ -236,6 +236,8 @@ export class GeminiClient {
         }
       })
       const result = response.response
+      console.log(result)
+      console.log(result.text())
       
       if (!result.text()) {
         // Check for safety filtering (Task T158)

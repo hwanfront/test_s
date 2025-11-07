@@ -426,18 +426,33 @@ async function startAnalysisProcess(
     // Perform the analysis
     const analysisResult = await analysisService.analyzeTerms(analysisInput)
 
+    // Debug log
+    console.log('Analysis result:', {
+      overallRiskScore: analysisResult.overallRiskScore,
+      riskLevel: analysisResult.riskLevel,
+      confidenceScore: analysisResult.confidenceScore,
+      riskAssessmentsCount: analysisResult.riskAssessments.length
+    })
+
     // Update session with results (only schema-compliant fields)
-    const { error: updateError } = await supabase
+    const updateData = {
+      status: 'completed' as const,
+      risk_score: analysisResult.overallRiskScore,
+      risk_level: analysisResult.riskLevel,
+      confidence_score: analysisResult.confidenceScore,
+      processing_time_ms: analysisResult.processingTimeMs,
+      completed_at: new Date().toISOString()
+    }
+    
+    console.log('Updating session with data:', updateData, 'for sessionId:', sessionId)
+    
+    const { data: updateResult, error: updateError } = await supabase
       .from('analysis_sessions')
-      .update({
-        status: 'completed',
-        risk_score: analysisResult.overallRiskScore,
-        risk_level: analysisResult.riskLevel,
-        confidence_score: analysisResult.confidenceScore,
-        processing_time_ms: analysisResult.processingTimeMs,
-        completed_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', sessionId)
+      .select()
+
+    console.log('Update result:', updateResult, 'Update error:', updateError)
 
     if (updateError) {
       throw new Error(`Failed to update session: ${updateError.message}`)

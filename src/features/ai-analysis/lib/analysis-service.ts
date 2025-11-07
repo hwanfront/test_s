@@ -225,7 +225,7 @@ export class AnalysisService {
             prompt: analysisPrompt,
             options: {
               maxRetries: input.options?.maxRetries || 3,
-              timeoutMs: 60000
+              timeoutMs: 600000
             }
           }
           
@@ -270,7 +270,8 @@ export class AnalysisService {
           mergeStep.result,
           input,
           sessionId,
-          stepResults
+          stepResults,
+          aiResult // Pass AI result to use overall scores
         )
         
         enhancedResult.processingTimeMs = Date.now() - startTime
@@ -368,14 +369,47 @@ export class AnalysisService {
       })
     }
 
-    if (aiResult && aiResult.result && Array.isArray(aiResult.result)) {
-      aiResult.result.forEach((risk: any) => {
-        risks.push({
-          ...risk,
-          source: 'ai_analysis' as const,
-          createdAt: new Date().toISOString()
+    // Handle AI result - check if result.riskAssessments exists (from Gemini structured output)
+    if (aiResult && aiResult.result) {
+      // Try to parse if it's a JSON string
+      let parsedResult = aiResult.result
+      if (typeof aiResult.result === 'string') {
+        try {
+          parsedResult = JSON.parse(aiResult.result)
+        } catch (e) {
+          console.warn('Failed to parse AI result as JSON:', e)
+        }
+      }
+
+      // Check if it has riskAssessments array (Gemini structured output format)
+      if (parsedResult && Array.isArray(parsedResult.riskAssessments)) {
+        parsedResult.riskAssessments.forEach((risk: any) => {
+          risks.push({
+            id: risk.id || `ai_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            category: risk.category,
+            riskLevel: risk.riskLevel,
+            riskScore: risk.riskScore,
+            confidenceScore: risk.confidenceScore,
+            summary: risk.summary,
+            rationale: risk.rationale,
+            suggestedAction: risk.suggestedAction,
+            startPosition: risk.startPosition || 0,
+            endPosition: risk.endPosition || 0,
+            source: 'ai_analysis' as const,
+            createdAt: new Date().toISOString()
+          })
         })
-      })
+      }
+      // Fallback: if result is directly an array
+      else if (Array.isArray(parsedResult)) {
+        parsedResult.forEach((risk: any) => {
+          risks.push({
+            ...risk,
+            source: 'ai_analysis' as const,
+            createdAt: new Date().toISOString()
+          })
+        })
+      }
     }
 
     return risks
@@ -385,11 +419,39 @@ export class AnalysisService {
     riskAssessments: RiskAssessment[],
     input: AnalysisInput,
     sessionId: string,
-    stepResults: AnalysisStepResult[]
+    stepResults: AnalysisStepResult[],
+    aiResult?: ParsedAnalysisResult | null
   ): AnalysisResult {
-    const overallRiskScore = this.calculateOverallRiskScore(riskAssessments)
-    const riskLevel = this.mapScoreToRiskLevel(overallRiskScore)
-    const confidenceScore = this.calculateConfidenceScore(riskAssessments, stepResults)
+    // Try to extract overall scores from AI result
+    let overallRiskScore = 0
+    let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low'
+    let confidenceScore = 0
+
+    if (aiResult && aiResult.result) {
+      let parsedResult = aiResult.result
+      if (typeof aiResult.result === 'string') {
+        try {
+          parsedResult = JSON.parse(aiResult.result)
+        } catch (e) {
+          console.warn('Failed to parse AI result for overall scores:', e)
+        }
+      }
+
+      // Use Gemini's overall scores if available
+      if (parsedResult && typeof parsedResult === 'object') {
+        overallRiskScore = parsedResult.overallRiskScore || this.calculateOverallRiskScore(riskAssessments)
+        riskLevel = parsedResult.overallRiskLevel || this.mapScoreToRiskLevel(overallRiskScore)
+        confidenceScore = parsedResult.confidenceScore || this.calculateConfidenceScore(riskAssessments, stepResults)
+      }
+    }
+
+    // Fallback to calculated values if AI didn't provide them
+    if (overallRiskScore === 0 && riskAssessments.length > 0) {
+      overallRiskScore = this.calculateOverallRiskScore(riskAssessments)
+      riskLevel = this.mapScoreToRiskLevel(overallRiskScore)
+      confidenceScore = this.calculateConfidenceScore(riskAssessments, stepResults)
+    }
+
     const summary = this.generateAnalysisSummary(riskAssessments, stepResults)
 
     const metadata = {
