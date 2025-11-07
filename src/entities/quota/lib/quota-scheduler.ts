@@ -270,8 +270,8 @@ export class QuotaResetScheduler {
     // Create a new quota record with reset values
     const newQuotaRecord: DailyQuotaRecord = {
       user_id: userId,
-      quota_date: resetDate,
-      analysis_count: 0,
+      date: resetDate,
+      free_analyses_used: 0,
       created_at: new Date(),
       updated_at: new Date()
     }

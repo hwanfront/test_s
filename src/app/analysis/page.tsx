@@ -12,7 +12,6 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { AuthGuard } from '@/shared/lib/middleware/auth-guard'
-import { AuthWidget } from '@/widgets/auth-widget'
 import { AnalysisForm } from '@/widgets/analysis-form'
 import type { AnalysisFormSubmission } from '@/widgets/analysis-form'
 
@@ -71,9 +70,6 @@ function AnalysisPageContent() {
               <p className="text-sm text-gray-600 mt-1">
                 Analyze terms and conditions for potential risks
               </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <AuthWidget variant="compact" />
             </div>
           </div>
         </div>

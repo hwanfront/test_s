@@ -275,7 +275,7 @@ async function handleContentValidation(request: NextRequest): Promise<NextRespon
     }, { status: 400 })
   }
 
-  const { content, options = {}, metadata = {} } = validationResult.data
+  const { content, options, metadata = {} } = validationResult.data
 
   // Check content size
   if (content.length > 1000000) {
@@ -307,7 +307,8 @@ async function handleContentValidation(request: NextRequest): Promise<NextRespon
 
   try {
     // Perform validation with privacy-safe rules
-    const validator = options?.ruleCategories?.includes('security') ? strictValidator : contentValidator
+    const useStrictValidator = options?.ruleCategories?.includes('security') ?? false
+    const validator = useStrictValidator ? strictValidator : contentValidator
     
     const result = await validator.validateContent(content, {
       ruleCategories: options?.ruleCategories,

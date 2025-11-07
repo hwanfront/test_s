@@ -5,6 +5,7 @@ import { Providers } from './providers'
 import { AppErrorBoundary } from '@/shared/ui/error-boundary'
 import { GlobalErrorHandler } from './global-error-handler'
 import { NavigationHeader } from '@/shared/ui/navigation-header'
+import { AppFooter } from '@/shared/ui/app-footer'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -31,11 +32,10 @@ export default function RootLayout({
         <GlobalErrorHandler />
         <AppErrorBoundary>
           <Providers>
-            <div className="min-h-screen bg-white font-sans antialiased">
+            <div className="flex min-h-screen flex-col bg-white font-sans antialiased">
               <NavigationHeader />
-              <div className="relative flex min-h-screen flex-col">
-                <main className="flex-1">{children}</main>
-              </div>
+              <main className="flex-1">{children}</main>
+              <AppFooter />
             </div>
           </Providers>
         </AppErrorBoundary>

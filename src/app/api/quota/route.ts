@@ -74,9 +74,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Get current quota record for today
     const dailyQuotaRecord = await getDailyQuotaRecord(userId, today)
     
-    // Calculate quota status using static method
+    // Calculate quota status using static method (coerce shape for transitional compatibility)
     const quotaStatus = QuotaCalculator.calculateQuotaStatus(
-      [dailyQuotaRecord], // Pass as array as expected by method
+      ([dailyQuotaRecord] as any) as any,
       new Date()
     )
 
@@ -87,11 +87,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const quotaResponse: QuotaStatusResponse = {
       userId: userId,
       dailyLimit: 3, // Default limit
-      currentUsage: dailyQuotaRecord.analysis_count,
+      currentUsage: (dailyQuotaRecord as any).free_analyses_used ?? (dailyQuotaRecord as any).analysis_count ?? 0,
       remainingAnalyses: quotaStatus.remainingAnalyses,
       quotaStatus: quotaStatus.remainingAnalyses > 0 ? 'active' : 'exceeded',
       resetTime: nextResetAt.toISOString(),
-      usagePercentage: Math.round((dailyQuotaRecord.analysis_count / 3) * 100),
+      usagePercentage: Math.round(((dailyQuotaRecord as any).free_analyses_used ?? (dailyQuotaRecord as any).analysis_count ?? 0) / 3 * 100),
       canPerformAnalysis: quotaStatus.remainingAnalyses > 0,
       lastUpdated: new Date().toISOString()
     }
@@ -141,8 +141,8 @@ async function getDailyQuotaRecord(userId: string, date: string) {
     // Mock data matching DailyQuotaRecord interface
     const mockRecord = {
       user_id: userId,
-      quota_date: date,
-      analysis_count: 1, // Simulate some usage
+      date: date,
+      free_analyses_used: 1, // Simulate some usage
       created_at: new Date(),
       updated_at: new Date()
     }
@@ -239,8 +239,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Check if increment is allowed using static method
     const dailyRecords = [dailyQuotaRecord]
+    // Coerce records shape for compatibility while migrating field names
     const currentStatus = QuotaCalculator.calculateQuotaStatus(
-      dailyRecords,
+      (dailyRecords as any) as any,
       new Date(),
       QUOTA_CONFIG.DAILY_LIMIT
     )
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Update quota usage - increment the analysis count
     // Note: In real implementation, this would update the database
     const updatedRecord = QuotaCalculator.incrementUsage(
-      dailyQuotaRecord,
+      (dailyQuotaRecord as any) as any,
       userId,
       new Date()
     )
@@ -272,7 +273,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const quotaResponse: QuotaUsageResponse = {
       success: true,
-      newUsage: updatedRecord.analysis_count,
+      newUsage: (updatedRecord as any).free_analyses_used ?? (updatedRecord as any).analysis_count ?? 0,
       remainingAnalyses: newStatus.remainingAnalyses,
       quotaExceeded: newStatus.remainingAnalyses <= 0,
       message: 'Quota usage updated successfully'

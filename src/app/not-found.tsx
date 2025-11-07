@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * Not Found (404) Error Page
  * 

@@ -29,12 +29,14 @@ export interface QuotaCalculation {
 }
 
 /**
- * Daily quota record interface
+ * Daily quota record interface (aligned with database schema)
  */
 export interface DailyQuotaRecord {
   user_id: string
-  quota_date: string
-  analysis_count: number
+  date: string  // Changed from quota_date to match schema
+  free_analyses_used: number  // Changed from free_analyses_used to match schema
+  paid_analyses_used?: number
+  free_analyses_limit?: number
   created_at?: Date
   updated_at?: Date
 }
@@ -54,8 +56,8 @@ export class QuotaCalculator {
     const dateString = this.getDateString(targetDate)
     
     // Find today's record
-    const todayRecord = dailyRecords.find(record => record.quota_date === dateString)
-    const currentUsage = todayRecord?.analysis_count || 0
+    const todayRecord = dailyRecords.find(record => record.date === dateString)
+    const currentUsage = todayRecord?.free_analyses_used || 0
     
     // Calculate remaining analyses
     const remainingAnalyses = Math.max(0, dailyLimit - currentUsage)
@@ -117,19 +119,19 @@ export class QuotaCalculator {
   ): DailyQuotaRecord {
     const dateString = this.getDateString(targetDate)
     
-    if (currentRecord && currentRecord.quota_date === dateString) {
+    if (currentRecord && currentRecord.date === dateString) {
       return {
         ...currentRecord,
-        analysis_count: currentRecord.analysis_count + 1,
+        free_analyses_used: currentRecord.free_analyses_used + 1,
         updated_at: new Date()
       }
     }
-    
+
     // Create new record for the day
     return {
       user_id: userId,
-      quota_date: dateString,
-      analysis_count: 1,
+      date: dateString,
+      free_analyses_used: 1,
       created_at: new Date(),
       updated_at: new Date()
     }
@@ -206,17 +208,17 @@ export class QuotaCalculator {
     dailyLimit: number = QUOTA_CONFIG.DAILY_LIMIT
   ) {
     const filteredRecords = dailyRecords.filter(record => {
-      const recordDate = new Date(record.quota_date)
+      const recordDate = new Date(record.date)
       return recordDate >= startDate && recordDate <= endDate
     })
 
     const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const daysWithUsage = filteredRecords.length
-    const totalUsage = filteredRecords.reduce((sum, record) => sum + record.analysis_count, 0)
+    const totalUsage = filteredRecords.reduce((sum, record) => sum + record.free_analyses_used, 0)
     const totalPossibleUsage = totalDays * dailyLimit
     const averageDailyUsage = daysWithUsage > 0 ? totalUsage / daysWithUsage : 0
-    const peakUsage = filteredRecords.reduce((max, record) => Math.max(max, record.analysis_count), 0)
-    const daysAtLimit = filteredRecords.filter(record => record.analysis_count >= dailyLimit).length
+    const peakUsage = filteredRecords.reduce((max, record) => Math.max(max, record.free_analyses_used), 0)
+    const daysAtLimit = filteredRecords.filter(record => record.free_analyses_used >= dailyLimit).length
 
     return {
       totalDays,
@@ -245,11 +247,11 @@ export class QuotaCalculator {
 
     // Simple moving average prediction
     const recentRecords = dailyRecords.slice(-7) // Last 7 days
-    const averageUsage = recentRecords.reduce((sum, record) => sum + record.analysis_count, 0) / recentRecords.length
+    const averageUsage = recentRecords.reduce((sum, record) => sum + record.free_analyses_used, 0) / recentRecords.length
     
     // Calculate confidence based on data consistency
     const variance = recentRecords.reduce((sum, record) => {
-      return sum + Math.pow(record.analysis_count - averageUsage, 2)
+      return sum + Math.pow(record.free_analyses_used - averageUsage, 2)
     }, 0) / recentRecords.length
     
     const confidence = Math.max(0, Math.min(100, 100 - (variance * 10)))
@@ -282,15 +284,15 @@ export class QuotaCalculator {
       errors.push('user_id is required and must be a string')
     }
 
-    if (!record.quota_date || typeof record.quota_date !== 'string') {
-      errors.push('quota_date is required and must be a string')
-    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(record.quota_date)) {
-      errors.push('quota_date must be in YYYY-MM-DD format')
+    if (!record.date || typeof record.date !== 'string') {
+      errors.push('date is required and must be a string')
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(record.date)) {
+      errors.push('date must be in YYYY-MM-DD format')
     }
 
-    if (record.analysis_count !== undefined) {
-      if (typeof record.analysis_count !== 'number' || record.analysis_count < 0) {
-        errors.push('analysis_count must be a non-negative number')
+    if (record.free_analyses_used !== undefined) {
+      if (typeof record.free_analyses_used !== 'number' || record.free_analyses_used < 0) {
+        errors.push('free_analyses_used must be a non-negative number')
       }
     }
 
@@ -307,13 +309,13 @@ export class QuotaCalculator {
     const recordMap = new Map<string, DailyQuotaRecord>()
 
     records.forEach(record => {
-      const key = `${record.user_id}_${record.quota_date}`
+      const key = `${record.user_id}_${record.date}`
       const existing = recordMap.get(key)
 
       if (existing) {
         recordMap.set(key, {
           ...existing,
-          analysis_count: existing.analysis_count + record.analysis_count,
+          free_analyses_used: existing.free_analyses_used + record.free_analyses_used,
           updated_at: new Date()
         })
       } else {
@@ -388,8 +390,8 @@ export class QuotaEnforcer {
         success: false,
         newRecord: {
           user_id: userId,
-          quota_date: QuotaCalculator.getDateString(new Date()),
-          analysis_count: 0
+          date: QuotaCalculator.getDateString(new Date()),
+          free_analyses_used: 0
         },
         error: error instanceof Error ? error.message : 'Failed to record usage'
       }

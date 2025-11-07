@@ -19,6 +19,8 @@ export interface Database {
           provider_id: string
           created_at: string
           updated_at: string
+          is_active: boolean
+          last_login_at: string
         }
         Insert: {
           id?: string
@@ -29,6 +31,8 @@ export interface Database {
           provider_id: string
           created_at?: string
           updated_at?: string
+          is_active?: boolean
+          last_login_at?: string
         }
         Update: {
           id?: string
@@ -39,91 +43,191 @@ export interface Database {
           provider_id?: string
           created_at?: string
           updated_at?: string
+          is_active?: boolean
+          last_login_at?: string
         }
       }
       analysis_sessions: {
         Row: {
           id: string
           user_id: string
-          title: string
-          status: 'pending' | 'processing' | 'completed' | 'failed'
+          title: string | null
+          content_hash: string
+          content_length: number
+          status: 'processing' | 'completed' | 'failed' | 'expired'
+          risk_score: number | null
+          risk_level: 'low' | 'medium' | 'high' | 'critical' | null
+          confidence_score: number | null
+          processing_time_ms: number | null
           created_at: string
-          updated_at: string
           completed_at: string | null
+          expires_at: string
+          error_message: string | null
+          updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          title: string
-          status?: 'pending' | 'processing' | 'completed' | 'failed'
+          title?: string | null
+          content_hash: string
+          content_length: number
+          status?: 'processing' | 'completed' | 'failed' | 'expired'
+          risk_score?: number | null
+          risk_level?: 'low' | 'medium' | 'high' | 'critical' | null
+          confidence_score?: number | null
+          processing_time_ms?: number | null
           created_at?: string
-          updated_at?: string
           completed_at?: string | null
+          expires_at: string
+          error_message?: string | null
+          updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          title?: string
-          status?: 'pending' | 'processing' | 'completed' | 'failed'
+          title?: string | null
+          content_hash?: string
+          content_length?: number
+          status?: 'processing' | 'completed' | 'failed' | 'expired'
+          risk_score?: number | null
+          risk_level?: 'low' | 'medium' | 'high' | 'critical' | null
+          confidence_score?: number | null
+          processing_time_ms?: number | null
           created_at?: string
-          updated_at?: string
           completed_at?: string | null
+          expires_at?: string
+          error_message?: string | null
+          updated_at?: string
         }
       }
-      analysis_results: {
+      risk_assessments: {
         Row: {
           id: string
           session_id: string
-          overall_risk_score: number
+          assessment_id: string
+          clause_category: string
+          risk_level: 'low' | 'medium' | 'high' | 'critical'
+          risk_score: number
+          confidence_score: number
           summary: string
-          issues_found: Json
-          metadata: Json
+          rationale: string
+          suggested_action: string | null
+          start_position: number
+          end_position: number
+          source: string
+          validation_flags: Json
           created_at: string
         }
         Insert: {
           id?: string
           session_id: string
-          overall_risk_score: number
+          assessment_id: string
+          clause_category: string
+          risk_level: 'low' | 'medium' | 'high' | 'critical'
+          risk_score: number
+          confidence_score: number
           summary: string
-          issues_found?: Json
-          metadata?: Json
+          rationale: string
+          suggested_action?: string | null
+          start_position: number
+          end_position: number
+          source: string
+          validation_flags?: Json
           created_at?: string
         }
         Update: {
           id?: string
           session_id?: string
-          overall_risk_score?: number
+          assessment_id?: string
+          clause_category?: string
+          risk_level?: 'low' | 'medium' | 'high' | 'critical'
+          risk_score?: number
+          confidence_score?: number
           summary?: string
-          issues_found?: Json
-          metadata?: Json
+          rationale?: string
+          suggested_action?: string | null
+          start_position?: number
+          end_position?: number
+          source?: string
+          validation_flags?: Json
           created_at?: string
         }
       }
-      quota_usage: {
+      daily_quotas: {
         Row: {
           id: string
           user_id: string
-          analysis_count: number
+          date: string
+          free_analyses_used: number
+          paid_analyses_used: number
+          free_analyses_limit: number
           last_reset_at: string
-          period: 'daily' | 'monthly'
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          analysis_count?: number
+          date: string
+          free_analyses_used?: number
+          paid_analyses_used?: number
+          free_analyses_limit?: number
           last_reset_at?: string
-          period: 'daily' | 'monthly'
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          analysis_count?: number
+          date?: string
+          free_analyses_used?: number
+          paid_analyses_used?: number
+          free_analyses_limit?: number
           last_reset_at?: string
-          period?: 'daily' | 'monthly'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      clause_patterns: {
+        Row: {
+          id: string
+          category: string
+          name: string
+          description: string
+          risk_level: 'low' | 'medium' | 'high' | 'critical'
+          keywords: Json
+          prompt_template: string
+          is_active: boolean
+          industry: string
+          version: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          category: string
+          name: string
+          description: string
+          risk_level: 'low' | 'medium' | 'high' | 'critical'
+          keywords: Json
+          prompt_template: string
+          is_active?: boolean
+          industry?: string
+          version?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          category?: string
+          name?: string
+          description?: string
+          risk_level?: 'low' | 'medium' | 'high' | 'critical'
+          keywords?: Json
+          prompt_template?: string
+          is_active?: boolean
+          industry?: string
+          version?: number
           created_at?: string
           updated_at?: string
         }
@@ -136,13 +240,19 @@ export interface Database {
       check_quota_limit: {
         Args: {
           user_uuid: string
-          quota_period: string
         }
         Returns: {
           current_count: number
           limit_reached: boolean
           remaining: number
+          daily_limit: number
         }[]
+      }
+      increment_quota_usage: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

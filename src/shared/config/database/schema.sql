@@ -1,3 +1,17 @@
+-- ⚠️ LEGACY SCHEMA - DO NOT USE FOR NEW DEPLOYMENTS
+-- This file contains an outdated schema definition.
+-- Please use migrate.sql instead which matches the data-model.md specification.
+--
+-- Key differences from current schema (migrate.sql):
+-- - Uses 'quota_usage' table instead of 'daily_quotas'
+-- - Uses 'analysis_results' table instead of 'risk_assessments'
+-- - Missing required fields in analysis_sessions (content_hash, content_length, etc.)
+-- - Missing clause_patterns table
+-- - Status values don't match (uses 'pending' instead of 'expired')
+--
+-- This file is kept for reference only during migration period.
+-- ⚠️ END WARNING
+
 -- Enable RLS (Row Level Security)
 alter default privileges revoke execute on functions from public;
 alter default privileges in schema public revoke execute on functions from public;

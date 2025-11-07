@@ -58,6 +58,7 @@ CREATE TABLE public.analysis_sessions (
 CREATE TABLE public.risk_assessments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID REFERENCES public.analysis_sessions(id) ON DELETE CASCADE NOT NULL,
+  assessment_id VARCHAR(100) NOT NULL,
   clause_category VARCHAR(50) NOT NULL,
   risk_level VARCHAR(10) NOT NULL CHECK (risk_level IN ('low', 'medium', 'high', 'critical')),
   risk_score INTEGER NOT NULL CHECK (risk_score >= 0 AND risk_score <= 100),
@@ -67,6 +68,8 @@ CREATE TABLE public.risk_assessments (
   suggested_action TEXT,
   start_position INTEGER NOT NULL CHECK (start_position >= 0),
   end_position INTEGER NOT NULL CHECK (end_position >= start_position),
+  source VARCHAR(50) NOT NULL DEFAULT 'ai_analysis',
+  validation_flags JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

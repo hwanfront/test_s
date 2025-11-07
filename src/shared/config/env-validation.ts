@@ -18,6 +18,7 @@ const envSchema = z.object({
 
   // AI Analysis (Google Gemini)
   GOOGLE_GEMINI_API_KEY: z.string().min(1, 'Google Gemini API key is required'),
+  GEMINI_MODEL: z.string().optional().default('gemini-1.5-flash-latest'),
 
   // Authentication (NextAuth.js)
   NEXTAUTH_URL: z.string().url('Invalid NextAuth URL'),

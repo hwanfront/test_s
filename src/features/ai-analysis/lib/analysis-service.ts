@@ -225,7 +225,7 @@ export class AnalysisService {
             prompt: analysisPrompt,
             options: {
               maxRetries: input.options?.maxRetries || 3,
-              timeoutMs: 45000
+              timeoutMs: 60000
             }
           }
           
@@ -299,7 +299,7 @@ export class AnalysisService {
   }
 
   private generateSessionId(): string {
-    return `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return crypto.randomUUID()
   }
 
   private async executeStep<T>(stepName: string, operation: () => Promise<T>): Promise<AnalysisStepResult> {

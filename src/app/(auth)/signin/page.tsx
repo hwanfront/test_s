@@ -131,9 +131,8 @@ function SignInContent() {
               <Shield className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold">Sign in to Terms Watcher</h1>
-          <p className="text-muted-foreground">
-            Access your analysis history and manage your quota
+          <p className="text-lg text-muted-foreground mt-4">
+            Access your analysis history and manage daily quota
           </p>
         </div>
 
@@ -149,9 +148,6 @@ function SignInContent() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Choose your sign-in method</CardTitle>
-            <CardDescription>
-              We support Google and Naver authentication for secure access
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* OAuth Sign-in Buttons */}

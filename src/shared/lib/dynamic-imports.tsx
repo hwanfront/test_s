@@ -14,11 +14,11 @@ interface DynamicImportOptions {
 /**
  * Type-safe dynamic import wrapper
  */
-function dynamicImport<T = {}>(
+function dynamicImport<T = any>(
   dynamicImport: () => Promise<{ default: ComponentType<T> }>,
   options: DynamicImportOptions = {}
 ): ComponentType<T> {
-  return dynamic(dynamicImport, {
+  return dynamic(dynamicImport as any, {
     loading: options.loading || (() => <div>Loading...</div>),
     ssr: options.ssr ?? true
   });
@@ -56,60 +56,60 @@ function SuspenseFallback({ type = 'component', message = 'Loading...' }: Suspen
 
 // Basic UI Components
 export const DynamicButton = dynamicImport(
-  () => import('@/shared/ui/button'),
+  (() => import('@/shared/ui/button').then(mod => ({ default: mod.Button }))) as any,
   {
     loading: () => <div className="h-10 w-20 bg-gray-200 animate-pulse rounded" />,
     ssr: true
   }
 );
 
-export const DynamicInput = dynamicImport(
-  () => import('@/shared/ui/input'),
-  {
-    loading: () => <div className="h-10 w-full bg-gray-200 animate-pulse rounded" />,
-    ssr: true
-  }
-);
+// export const DynamicInput = dynamicImport(
+//   (() => import('@/shared/ui/input').then(mod => ({ default: mod.Input }))) as any,
+//   {
+//     loading: () => <div className="h-10 w-full bg-gray-200 animate-pulse rounded" />,
+//     ssr: true
+//   }
+// );
 
-export const DynamicTextarea = dynamicImport(
-  () => import('@/shared/ui/textarea'),
-  {
-    loading: () => <div className="h-20 w-full bg-gray-200 animate-pulse rounded" />,
-    ssr: true
-  }
-);
+// export const DynamicTextarea = dynamicImport(
+//   (() => import('@/shared/ui/textarea').then(mod => ({ default: mod.Textarea }))) as any,
+//   {
+//     loading: () => <div className="h-20 w-full bg-gray-200 animate-pulse rounded" />,
+//     ssr: true
+//   }
+// );
 
 export const DynamicCard = dynamicImport(
-  () => import('@/shared/ui/card'),
+  (() => import('@/shared/ui/card').then(mod => ({ default: mod.Card }))) as any,
   {
     loading: () => <div className="h-32 w-full bg-gray-200 animate-pulse rounded-lg" />,
     ssr: true
   }
 );
 
-export const DynamicDialog = dynamicImport(
-  () => import('@/shared/ui/dialog'),
-  {
-    loading: () => <SuspenseFallback type="modal" />,
-    ssr: false
-  }
-);
+// export const DynamicDialog = dynamicImport(
+//   (() => import('@/shared/ui/dialog')) as any,
+//   {
+//     loading: () => <SuspenseFallback type="modal" />,
+//     ssr: false
+//   }
+// );
 
 export const DynamicDropdownMenu = dynamicImport(
-  () => import('@/shared/ui/dropdown-menu'),
+  (() => import('@/shared/ui/dropdown-menu')) as any,
   {
     loading: () => <div className="h-8 w-8 bg-gray-200 animate-pulse rounded" />,
     ssr: false
   }
 );
 
-export const DynamicTabs = dynamicImport(
-  () => import('@/shared/ui/tabs'),
-  {
-    loading: () => <div className="h-40 w-full bg-gray-200 animate-pulse rounded" />,
-    ssr: true
-  }
-);
+// export const DynamicTabs = dynamicImport(
+//   (() => import('@/shared/ui/tabs')) as any,
+//   {
+//     loading: () => <div className="h-40 w-full bg-gray-200 animate-pulse rounded" />,
+//     ssr: true
+//   }
+// );
 
 /**
  * Lazy loaded feature components
@@ -117,7 +117,7 @@ export const DynamicTabs = dynamicImport(
 
 // Analysis Feature Components
 export const DynamicAnalysisForm = dynamicImport(
-  () => import('@/widgets/analysis-form'),
+  (() => import('@/widgets/analysis-form')) as any,
   {
     loading: () => <SuspenseFallback type="component" message="Loading analysis form..." />,
     ssr: false
@@ -125,7 +125,7 @@ export const DynamicAnalysisForm = dynamicImport(
 );
 
 export const DynamicResultsDashboard = dynamicImport(
-  () => import('@/widgets/results-dashboard'),
+  (() => import('@/widgets/results-dashboard')) as any,
   {
     loading: () => <SuspenseFallback type="component" message="Loading results..." />,
     ssr: false
@@ -134,7 +134,7 @@ export const DynamicResultsDashboard = dynamicImport(
 
 // Auth Feature Components
 export const DynamicAuthWidget = dynamicImport(
-  () => import('@/widgets/auth-widget'),
+  (() => import('@/widgets/auth-widget')) as any,
   {
     loading: () => <SuspenseFallback type="component" message="Loading authentication..." />,
     ssr: false
@@ -172,7 +172,7 @@ export function preloadCriticalComponents(): void {
   if (typeof window !== 'undefined') {
     // Preload critical UI components
     preloadComponent(() => import('@/shared/ui/button'));
-    preloadComponent(() => import('@/shared/ui/input'));
+    // preloadComponent(() => import('@/shared/ui/input'));
     preloadComponent(() => import('@/shared/ui/card'));
     
     // Preload critical feature components

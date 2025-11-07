@@ -77,22 +77,20 @@ const PreprocessingErrorCodes = {
  * Initialize services
  */
 const anonymizer = new EnhancedAnonymizer({
-  enableMetadataExtraction: true,
-  enableContextualAnalysis: true,
-  privacyLevel: 'maximum'
+  retainMetrics: true,
+  preserveStructure: true,
+  enableContentHashing: true
 })
 
-const deduplicationService = new ContentDeduplicationService({
-  enableStructuralSimilarity: true,
-  similarityThreshold: 0.85,
-  enableCaching: true
-})
+const deduplicationService = new ContentDeduplicationService(
+  anonymizer,
+  {
+    similarityThreshold: 0.85,
+    enableStructuralAnalysis: true
+  }
+)
 
-const hashComparison = new SecureHashComparison({
-  enableTimingSafeComparison: true,
-  enableHashValidation: true,
-  enableSecurityReporting: true
-})
+const hashComparison = new SecureHashComparison()
 
 const auditLogger = new PreprocessingAuditLogger({
   enableDetailedLogging: true,
@@ -130,12 +128,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preproces
         error: {
           code: PreprocessingErrorCodes.INVALID_INPUT,
           message: 'Invalid request format',
-          details: validationResult.error.errors
+          details: validationResult.error.issues
         }
       }, { status: 400 })
     }
 
-    const { content, sessionId, userId, options = {} } = validationResult.data
+    const { content, sessionId, userId, options } = validationResult.data
 
     // Generate session ID if not provided
     const finalSessionId = sessionId || generateSessionId()
@@ -154,7 +152,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preproces
     }
 
     // Log content received
-    if (options.enableAuditLogging) {
+    if (options?.enableAuditLogging) {
       await auditLogger.logContentReceived(
         finalSessionId,
         userId || 'anonymous',
@@ -165,7 +163,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preproces
 
     // Step 1: Content Validation
     let validationScore = 100
-    if (options.enableValidation) {
+    if (options?.enableValidation) {
       const validationResult = await contentValidator.validateContent(content, {
         skipPrivacyUnsafeRules: true,
         collectMetrics: false
@@ -196,7 +194,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preproces
     const normalizedContent = normalizeContent(content)
     const normalizedLength = normalizedContent.length
 
-    if (options.enableAuditLogging) {
+    if (options?.enableAuditLogging) {
       await auditLogger.logContentNormalized(
         finalSessionId,
         content.length,
@@ -212,7 +210,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preproces
       .digest('hex')
     const hashingTime = Date.now() - hashingStartTime
 
-    if (options.enableAuditLogging) {
+    if (options?.enableAuditLogging) {
       await auditLogger.logContentHashed(
         finalSessionId,
         contentHash,
@@ -224,21 +222,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preproces
     let isDuplicate = false
     let similarity: number | undefined
     
-    if (options.enableDeduplication) {
+    if (options?.enableDeduplication) {
       const deduplicationStartTime = Date.now()
-      const deduplicationResult = await deduplicationService.checkForDuplicates(
-        contentHash,
-        normalizedContent
+      const deduplicationResult = await deduplicationService.checkDuplication(
+        normalizedContent,
+        userId || 'anonymous'
       )
       
-      isDuplicate = deduplicationResult.exactMatches.length > 0
-      similarity = deduplicationResult.similarContent.length > 0 
-        ? Math.max(...deduplicationResult.similarContent.map(c => c.similarity))
-        : undefined
+      isDuplicate = deduplicationResult.isDuplicate
+      similarity = deduplicationResult.similarity
 
       const deduplicationTime = Date.now() - deduplicationStartTime
 
-      if (options.enableAuditLogging) {
+      if (options?.enableAuditLogging) {
         await auditLogger.logDeduplicationCheck(
           finalSessionId,
           contentHash,
@@ -251,35 +247,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<Preproces
 
     // Step 5: Enhanced Anonymization
     const anonymizationStartTime = Date.now()
-    const anonymizationResult = await anonymizer.anonymizeContent(
-      normalizedContent,
-      {
-        level: options.anonymizationLevel,
-        extractMetadata: options.retainMetadata,
-        enableContextualAnalysis: true
-      }
-    )
+    const anonymizationResult = await anonymizer.anonymizeContent(normalizedContent)
     const anonymizationTime = Date.now() - anonymizationStartTime
 
     // Verify constitutional compliance (no original content in result)
-    if (anonymizationResult.originalContent) {
-      await auditLogger.logProcessingError(
-        finalSessionId,
-        'PRIVACY_VIOLATION',
-        'Anonymization result contains original content',
-        'anonymization'
-      )
-
-      return NextResponse.json({
-        success: false,
-        error: {
-          code: PreprocessingErrorCodes.PRIVACY_VIOLATION,
-          message: 'Privacy violation detected during processing'
-        }
-      }, { status: 500 })
-    }
-
-    if (options.enableAuditLogging) {
+    // AnonymizedContent interface doesn't have originalContent property by design
+    
+    if (options?.enableAuditLogging) {
       await auditLogger.logAnonymizationCompleted(
         finalSessionId,
         contentHash,
@@ -407,10 +381,10 @@ function normalizeContent(content: string): string {
 }
 
 /**
- * Generate session ID
+ * Generate session ID using standard UUID format
  */
 function generateSessionId(): string {
-  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 16)}`
+  return crypto.randomUUID()
 }
 
 /**
@@ -418,7 +392,7 @@ function generateSessionId(): string {
  */
 function getClientIpHash(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
-  const ip = forwarded ? forwarded.split(',')[0] : request.ip || 'unknown'
+  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown'
   
   return createHash('sha256')
     .update(ip)

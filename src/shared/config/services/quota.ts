@@ -1,3 +1,14 @@
+/**
+ * ⚠️ LEGACY QUOTA SERVICE - Uses outdated quota_usage table
+ * 
+ * This service uses the legacy quota_usage table schema which is being phased out.
+ * For new code, use:
+ * - QuotaCalculator and QuotaEnforcer from @/entities/quota/lib/quota-calculator
+ * - daily_quotas table (date, free_analyses_used fields)
+ * 
+ * This file is kept for backward compatibility during migration.
+ */
+
 import { createServerClient } from '@/shared/config/database'
 import type { QuotaUsage, QUOTA_LIMITS } from '@/entities/quota'
 

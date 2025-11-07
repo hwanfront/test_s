@@ -182,10 +182,10 @@ export class QuotaValidator {
     // Check if reset is actually needed
     const records = context.currentRecords || []
     const todayRecord = records.find(record => 
-      record.quota_date === QuotaCalculator.getDateString(targetDate)
+      record.date === QuotaCalculator.getDateString(targetDate)
     )
 
-    if (!todayRecord || todayRecord.analysis_count === 0) {
+    if (!todayRecord || todayRecord.free_analyses_used === 0) {
       warnings.push('No usage to reset for this date')
     }
 
@@ -320,7 +320,7 @@ export class QuotaValidator {
     const duplicates = new Set<string>()
 
     records.forEach(record => {
-      const key = `${record.user_id}_${record.quota_date}`
+      const key = `${record.user_id}_${record.date}`
       if (recordKeys.has(key)) {
         duplicates.add(key)
       }
@@ -340,7 +340,7 @@ export class QuotaValidator {
     })
 
     // Check for suspicious patterns
-    const highUsageRecords = records.filter(record => record.analysis_count > QUOTA_CONFIG.DAILY_LIMIT)
+    const highUsageRecords = records.filter(record => record.free_analyses_used > QUOTA_CONFIG.DAILY_LIMIT)
     if (highUsageRecords.length > 0) {
       warnings.push(`${highUsageRecords.length} records exceed daily limit`)
     }

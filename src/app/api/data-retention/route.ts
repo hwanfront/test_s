@@ -39,7 +39,7 @@ const registerDataSchema = z.object({
   dataType: z.string().min(1),
   contentHash: z.string().min(64).max(64), // SHA-256 hash
   policyId: z.string().min(1),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   securityLevel: z.enum(['low', 'medium', 'high', 'critical']).default('medium')
 })
 

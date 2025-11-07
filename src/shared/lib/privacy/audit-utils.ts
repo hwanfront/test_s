@@ -732,11 +732,3 @@ export async function validateDataPrivacy(data: any): Promise<DataPrivacyComplia
     rightToDeletion: true
   }
 }
-
-// Export types
-export type {
-  PrivacyAuditResult,
-  PrivacyAuditCheck,
-  PrivacyAuditConfig,
-  DataPrivacyCompliance
-}

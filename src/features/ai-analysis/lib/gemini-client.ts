@@ -11,7 +11,8 @@ import {
   GenerationConfig, 
   SafetySetting,
   HarmCategory,
-  HarmBlockThreshold
+  HarmBlockThreshold,
+  SchemaType
 } from '@google/generative-ai'
 
 export interface GeminiConfig {
@@ -103,16 +104,18 @@ export class GeminiClient {
   private config: Required<GeminiConfig>
 
   constructor(config: GeminiConfig = {}) {
-    const apiKey = config.apiKey || process.env.GEMINI_API_KEY
+    const apiKey = config.apiKey || process.env.GOOGLE_GEMINI_API_KEY
     if (!apiKey) {
-      throw new Error('Gemini API key is required')
+      throw new Error('Gemini API key is required. Please set GOOGLE_GEMINI_API_KEY environment variable.')
     }
 
     this.config = {
       apiKey,
-      model: config.model || 'gemini-1.5-flash',
-      maxOutputTokens: config.maxOutputTokens || 4096,
-      temperature: config.temperature || 0.1, // Low temperature for consistent analysis
+      // Use gemini-2.5-pro for improved accuracy (Task T158)
+      // Fallback to gemini-1.5-flash-latest if not specified
+      model: config.model || process.env.GEMINI_MODEL || 'gemini-2.5-pro',
+      maxOutputTokens: config.maxOutputTokens || 12288, // Increased from 4096 (Task T158)
+      temperature: config.temperature || 0.3, // Low temperature for consistent analysis
       topP: config.topP || 0.8,
       topK: config.topK || 40,
       safetySettings: config.safetySettings || this.getDefaultSafetySettings()
@@ -179,6 +182,40 @@ export class GeminiClient {
   }
 
   /**
+   * Get JSON Schema for structured output (Task T157)
+   */
+  private getResponseSchema() {
+    return {
+      type: SchemaType.OBJECT as SchemaType.OBJECT,
+      properties: {
+        analysis: { type: SchemaType.STRING as SchemaType.STRING },
+        overallRiskScore: { type: SchemaType.NUMBER as SchemaType.NUMBER, description: "Calculate the overall risk score from 0 to 100, where 100 is critical risk." },
+        overallRiskLevel: { type: SchemaType.STRING as SchemaType.STRING },
+        confidenceScore: { type: SchemaType.NUMBER as SchemaType.NUMBER },
+        riskAssessments: {
+          type: SchemaType.ARRAY as SchemaType.ARRAY,
+          items: {
+            type: SchemaType.OBJECT as SchemaType.OBJECT,
+            properties: {
+              category: { type: SchemaType.STRING as SchemaType.STRING },
+              riskLevel: { type: SchemaType.STRING as SchemaType.STRING },
+              riskScore: { type: SchemaType.NUMBER as SchemaType.NUMBER },
+              confidenceScore: { type: SchemaType.NUMBER as SchemaType.NUMBER },
+              summary: { type: SchemaType.STRING as SchemaType.STRING },
+              rationale: { type: SchemaType.STRING as SchemaType.STRING },
+              suggestedAction: { type: SchemaType.STRING as SchemaType.STRING },
+              startPosition: { type: SchemaType.NUMBER as SchemaType.NUMBER },
+              endPosition: { type: SchemaType.NUMBER as SchemaType.NUMBER }
+            },
+            required: ['category', 'riskLevel', 'riskScore', 'confidenceScore', 'summary', 'rationale', 'startPosition', 'endPosition']
+          }
+        }
+      },
+      required: ['analysis', 'overallRiskScore', 'overallRiskLevel', 'confidenceScore', 'riskAssessments']
+    }
+  }
+
+  /**
    * Perform the actual analysis with Gemini
    */
   private async performAnalysis(
@@ -188,25 +225,63 @@ export class GeminiClient {
     // Build the complete prompt
     const fullPrompt = this.buildFullPrompt(request.prompt, request.sanitizedText)
 
-    // Call Gemini API
-    const response = await this.model.generateContent(fullPrompt)
-    const result = response.response
+    // Call Gemini API with structured output (Task T157)
+    try {
+      const response = await this.model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+        generationConfig: {
+          ...this.getGenerationConfig(),
+          responseMimeType: 'application/json',
+          responseSchema: this.getResponseSchema()
+        }
+      })
+      const result = response.response
+      
+      if (!result.text()) {
+        // Check for safety filtering (Task T158)
+        console.log(result)
+        const promptFeedback = (response as any).promptFeedback
+        if (promptFeedback) {
+          console.error('Gemini safety filtering triggered:', JSON.stringify(promptFeedback, null, 2))
+          throw new Error(`No response text from Gemini API - Safety filtering: ${JSON.stringify(promptFeedback)}`)
+        }
+        throw new Error('No response text from Gemini API')
+      }
 
-    if (!result.text()) {
-      throw new Error('No response text from Gemini API')
-    }
+      // Parse the JSON response directly (Task T157 - no regex needed)
+      const parsedResult = JSON.parse(result.text())
+      const validatedResult = this.validateAndSanitizeResponse(parsedResult, request.sanitizedText)
+      const processingTimeMs = Date.now() - startTime
 
-    // Parse the response
-    const parsedResult = this.parseGeminiResponse(result.text(), request.sanitizedText)
-    const processingTimeMs = Date.now() - startTime
+      return {
+        success: true,
+        result: {
+          ...validatedResult,
+          processingTimeMs
+        },
+        usage: this.extractUsageInfo(response)
+      }
 
-    return {
-      success: true,
-      result: {
-        ...parsedResult,
-        processingTimeMs
-      },
-      usage: this.extractUsageInfo(response)
+    } catch (error: any) {
+      // Check for safety filtering (Task T158)
+      const errMsg = error?.message || String(error)
+      if (errMsg.includes('Safety') || errMsg.includes('safety')) {
+        console.error('Gemini API safety filtering detected:', errMsg)
+      }
+      
+      console.warn('Gemini generateContent failed — using fallback parser:', errMsg)
+
+      const fallback = this.createFallbackResponse(errMsg, request.sanitizedText)
+      const processingTimeMs = Date.now() - startTime
+
+      return {
+        success: true,
+        result: {
+          ...fallback,
+          processingTimeMs
+        },
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      }
     }
   }
 
@@ -231,8 +306,6 @@ export class GeminiClient {
 
     fullPrompt += `${prompt.userPrompt}\n\n`
     fullPrompt += `Terms and Conditions Text to Analyze:\n${sanitizedText}\n\n`
-    fullPrompt += `Please provide your analysis in the following JSON format:\n`
-    fullPrompt += this.getResponseFormat()
 
     return fullPrompt
   }
@@ -528,8 +601,8 @@ export class GeminiClient {
         throw new Error('Temperature must be between 0 and 2')
       }
       
-      if (this.config.maxOutputTokens < 1 || this.config.maxOutputTokens > 8192) {
-        throw new Error('Max tokens must be between 1 and 8192')
+      if (this.config.maxOutputTokens < 1 || this.config.maxOutputTokens > 32768) {
+        throw new Error('Max tokens must be between 1 and 32768')
       }
       
       return true

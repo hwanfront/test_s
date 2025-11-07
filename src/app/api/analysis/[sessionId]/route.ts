@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { z } from 'zod'
-import { supabase } from '@/shared/config/database/supabase'
+import { createServerClient } from '@/shared/config/database/supabase'
 import { ApiError, withErrorHandler } from '@/shared/lib/api-utils'
 
 // Query parameters validation schema
@@ -107,6 +107,9 @@ export const GET = withErrorHandler(async (
 ) => {
   const startTime = Date.now()
   
+  // Create server-side Supabase client with service role (bypasses RLS)
+  const supabase = createServerClient()
+  
   try {
     // Await params in Next.js 16
     const { sessionId } = await params
@@ -117,12 +120,35 @@ export const GET = withErrorHandler(async (
       throw new ApiError(401, 'Authentication required to access analysis results')
     }
 
+    // Get user's database UUID from email
+    const userEmail = token.email as string
+    if (!userEmail) {
+      throw new ApiError(401, 'User email not found in session')
+    }
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', userEmail)
+      .single()
+
+    if (userError || !userData) {
+      console.error('User lookup error:', userError)
+      throw new ApiError(401, 'User not found in database')
+    }
+
+    const databaseUserId = userData.id
+
     // Validate session ID
     if (!sessionId || sessionId.trim().length === 0) {
       throw new ApiError(400, 'Session ID is required')
     }
 
-    if (!sessionId.match(/^analysis_\d+_[a-z0-9]+_\d{3}$/)) {
+    // Accept both UUID format and legacy custom format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)
+    const isLegacy = /^analysis_\d+_[a-z0-9]+_\d{3}$/.test(sessionId)
+    
+    if (!isUUID && !isLegacy) {
       throw new ApiError(400, 'Invalid session ID format')
     }
 
@@ -141,7 +167,7 @@ export const GET = withErrorHandler(async (
       .from('analysis_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('user_id', token.userId)
+      .eq('user_id', databaseUserId)
       .single()
 
     if (sessionError || !session) {

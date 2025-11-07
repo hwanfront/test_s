@@ -43,10 +43,45 @@ function AnalysisResultsPageContent() {
       }
 
       const data = await response.json()
-      setAnalysisResult(data)
+      
+      // Transform API response to match component expectations
+      const transformedData = {
+        session: {
+          id: data.sessionId,
+          status: data.status,
+          riskLevel: data.riskLevel || 'low',
+          riskScore: data.overallRiskScore || 0,
+          confidenceScore: data.confidenceScore || 0,
+          contentLength: data.contentLength,
+          processingTimeMs: data.processingTimeMs || 0,
+          createdAt: data.createdAt,
+          completedAt: data.completedAt,
+          expiresAt: data.expiresAt
+        },
+        summary: data.summary || {
+          totalRisks: data.totalRisks || 0,
+          riskBreakdown: data.summary?.riskBreakdown || { critical: 0, high: 0, medium: 0, low: 0 },
+          recommendedActions: data.summary?.recommendedActions || [],
+          analysisLimitations: data.summary?.analysisLimitations || []
+        },
+        riskAssessments: (data.riskAssessments || []).map((risk: any) => ({
+          id: risk.id,
+          clauseCategory: risk.category,
+          riskLevel: risk.riskLevel,
+          riskScore: risk.riskScore,
+          confidenceScore: risk.confidenceScore,
+          summary: risk.summary,
+          rationale: risk.rationale,
+          suggestedAction: risk.suggestedAction,
+          startPosition: risk.startPosition,
+          endPosition: risk.endPosition
+        }))
+      }
+      
+      setAnalysisResult(transformedData)
       
       // If still processing, continue polling
-      if (data.session.status === 'processing') {
+      if (data.status === 'processing' || data.status === 'queued') {
         if (!pollingActive) {
           setPollingActive(true)
           setTimeout(fetchResults, 2000) // Poll every 2 seconds
@@ -182,7 +217,7 @@ function AnalysisResultsPageContent() {
         )}
 
         {/* Status indicator for processing */}
-        {analysisResult?.session.status === 'processing' && (
+        {analysisResult?.session?.status === 'processing' && (
           <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
             <div className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />

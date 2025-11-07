@@ -352,6 +352,12 @@ export class AnalysisEntityServiceImpl implements AnalysisEntityService {
       updatedAt: dbSession.updated_at,
       completedAt: dbSession.completed_at,
       expiresAt: dbSession.expires_at,
+      privacyCompliance: dbSession.privacy_compliance || {
+        contentHashOnly: true,
+        noOriginalTextStored: true,
+        anonymizationApplied: true,
+        retentionPolicyApplied: true
+      },
       constitutionalCompliance: dbSession.constitutional_compliance || {
         originalTextStored: false,
         preprocessingApplied: true,
