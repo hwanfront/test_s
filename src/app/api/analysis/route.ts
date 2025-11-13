@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { AnalysisService, type AnalysisInput, type AnalysisContext, type AnalysisOptions } from '@/features/ai-analysis'
 import { TextPreprocessor } from '@/features/text-preprocessing'
@@ -14,6 +14,7 @@ import { createServerClient } from '@/shared/config/database/supabase'
 import { ApiError, withErrorHandler } from '@/shared/lib/api-utils'
 import { validateInput } from '@/shared/lib/validation'
 import { QuotaEnforcer, QUOTA_CONFIG } from '@/entities/quota/lib/quota-calculator'
+import { authOptions } from '@/shared/config/auth'
 
 // Enhanced request validation schema with constitutional compliance
 const AnalysisRequestSchema = z.object({
@@ -84,26 +85,22 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const supabase = createServerClient()
   
   try {
-    // Verify authentication
-    const token = await getToken({ 
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET 
+    // Verify authentication using NextAuth session
+    const session = await getServerSession(authOptions)
+    
+    console.log('Session retrieved:', { 
+      hasSession: !!session, 
+      email: session?.user?.email,
+      userId: session?.user?.id,
+      sessionKeys: session ? Object.keys(session) : []
     })
     
-    console.log('Token retrieved:', { 
-      hasToken: !!token, 
-      email: token?.email,
-      userId: token?.userId,
-      sub: token?.sub,
-      tokenKeys: token ? Object.keys(token) : []
-    })
-    
-    if (!token || !token.email) {
+    if (!session || !session.user?.email) {
       throw new ApiError(401, 'Authentication required for analysis submission')
     }
 
     // Get user's database UUID from email
-    const userEmail = token.email as string
+    const userEmail = session.user.email
 
     const { data: userData, error: userError } = await supabase
       .from('users')
