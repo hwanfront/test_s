@@ -85,16 +85,25 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   
   try {
     // Verify authentication
-    const token = await getToken({ req: request })
-    if (!token || !token.userId) {
+    const token = await getToken({ 
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET 
+    })
+    
+    console.log('Token retrieved:', { 
+      hasToken: !!token, 
+      email: token?.email,
+      userId: token?.userId,
+      sub: token?.sub,
+      tokenKeys: token ? Object.keys(token) : []
+    })
+    
+    if (!token || !token.email) {
       throw new ApiError(401, 'Authentication required for analysis submission')
     }
 
     // Get user's database UUID from email
     const userEmail = token.email as string
-    if (!userEmail) {
-      throw new ApiError(401, 'User email not found in session')
-    }
 
     const { data: userData, error: userError } = await supabase
       .from('users')
