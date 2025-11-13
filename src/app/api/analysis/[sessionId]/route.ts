@@ -6,10 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { createServerClient } from '@/shared/config/database/supabase'
 import { ApiError, withErrorHandler } from '@/shared/lib/api-utils'
+import { authOptions } from '@/shared/config/auth'
 
 // Query parameters validation schema
 const QueryParamsSchema = z.object({
@@ -114,17 +115,21 @@ export const GET = withErrorHandler(async (
     // Await params in Next.js 16
     const { sessionId } = await params
     
-    // Verify authentication
-    const token = await getToken({ req: request })
-    if (!token || !token.userId) {
+    // Verify authentication using NextAuth session
+    const authSession = await getServerSession(authOptions)
+    
+    console.log('Session retrieved in [sessionId] route:', { 
+      hasSession: !!authSession, 
+      email: authSession?.user?.email,
+      userId: authSession?.user?.id
+    })
+    
+    if (!authSession || !authSession.user?.email) {
       throw new ApiError(401, 'Authentication required to access analysis results')
     }
 
     // Get user's database UUID from email
-    const userEmail = token.email as string
-    if (!userEmail) {
-      throw new ApiError(401, 'User email not found in session')
-    }
+    const userEmail = authSession.user.email
 
     const { data: userData, error: userError } = await supabase
       .from('users')

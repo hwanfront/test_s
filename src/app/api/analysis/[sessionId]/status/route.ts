@@ -6,10 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { getServerSession } from 'next-auth'
 import { z } from 'zod'
 import { supabase } from '@/shared/config/database/supabase'
 import { ApiError, withErrorHandler } from '@/shared/lib/api-utils'
+import { authOptions } from '@/shared/config/auth'
 
 // Query parameters validation schema
 const StatusQuerySchema = z.object({
@@ -83,18 +84,26 @@ export const GET = withErrorHandler(async (
     // Await params in Next.js 16
     const { sessionId } = await params
     
-    // Verify authentication
-    const token = await getToken({ req: request })
-    if (!token || !token.userId) {
+    // Verify authentication using NextAuth session
+    const authSession = await getServerSession(authOptions)
+    
+    if (!authSession || !authSession.user?.email) {
       throw new ApiError(401, 'Authentication required to check analysis status')
     }
+
+    // Get user's database UUID from email
+    const userEmail = authSession.user.email
 
     // Validate session ID
     if (!sessionId || sessionId.trim().length === 0) {
       throw new ApiError(400, 'Session ID is required')
     }
 
-    if (!sessionId.match(/^analysis_\d+_[a-z0-9]+_\d{3}$/)) {
+    // Accept both UUID format and legacy custom format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)
+    const isLegacy = /^analysis_\d+_[a-z0-9]+_\d{3}$/.test(sessionId)
+    
+    if (!isUUID && !isLegacy) {
       throw new ApiError(400, 'Invalid session ID format')
     }
 
@@ -107,12 +116,26 @@ export const GET = withErrorHandler(async (
     
     const validatedParams = StatusQuerySchema.parse(queryParams)
 
+    // Get user's database UUID from email
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', userEmail)
+      .single()
+
+    if (userError || !userData) {
+      console.error('User lookup error:', userError)
+      throw new ApiError(401, 'User not found in database')
+    }
+
+    const databaseUserId = userData.id
+
     // Fetch session status
     const { data: session, error: sessionError } = await supabase
       .from('analysis_sessions')
       .select('*')
       .eq('id', sessionId)
-      .eq('user_id', token.userId)
+      .eq('user_id', databaseUserId)
       .single()
 
     if (sessionError || !session) {
